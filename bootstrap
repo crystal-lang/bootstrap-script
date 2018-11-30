@@ -199,3 +199,14 @@ test -f "$stages"/05-crystal || (
     patch -p1 < "$files"/stage5.patch
     "$stages"/04-crystal -stats --llc '-relocation-model=pic' -o "$stages"/05-crystal src/compiler/crystal.cr
 )
+
+echo "==> Bootstrapping Crystal (06/$crystal_stages)"
+test -f "$stages"/06-crystal || (
+    cd "$src"
+
+    clone-crystal-at 72f260e00bf343d179dd2a72b5f6e699f9030739
+
+    cd crystal
+
+    "$stages"/05-crystal -stats --llc '-relocation-model=pic' -o "$stages"/06-crystal src/compiler/crystal.cr
+)
