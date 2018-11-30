@@ -1,0 +1,40 @@
+#!/bin/bash
+set -euo pipefail
+
+# CD to the directly this file is actually in
+cd "$(dirname "$(realpath --logical "$0")")"
+
+downloads="$(pwd)"/downloads
+
+rm -Rf "$downloads"
+mkdir -p "$downloads"
+
+wget -O "$downloads"/openssl-1.0.2q.tar.gz https://www.openssl.org/source/openssl-1.0.2q.tar.gz
+wget -O "$downloads"/ruby-1.9.3-p551.tar.gz https://cache.ruby-lang.org/pub/ruby/1.9/ruby-1.9.3-p551.tar.gz
+wget -O "$downloads"/llvm-3.3.src.tar.gz https://releases.llvm.org/3.3/llvm-3.3.src.tar.gz
+git clone --mirror https://github.com/crystal-lang/crystal.git "$downloads"/crystal.git
+
+# Gems
+mkdir "$downloads"/gems
+wget -O "$downloads"/gems/bundler-1.17.1.gem https://rubygems.org/downloads/bundler-1.17.1.gem
+git clone --mirror https://github.com/manastech/ruby-llvm.git "$downloads"/gems/ruby-llvm.git
+git clone --mirror https://github.com/ruby-prof/ruby-prof.git "$downloads"/gems/ruby-prof.git
+wget -O "$downloads"/gems/coveralls-0.7.0.gem https://rubygems.org/downloads/coveralls-0.7.0.gem
+wget -O "$downloads"/gems/diff-lcs-1.2.4.gem https://rubygems.org/downloads/diff-lcs-1.2.4.gem
+wget -O "$downloads"/gems/ffi-1.9.0.gem https://rubygems.org/downloads/ffi-1.9.0.gem
+wget -O "$downloads"/gems/json-1.7.7.gem https://rubygems.org/downloads/json-1.7.7.gem
+wget -O "$downloads"/gems/levenshtein-ffi-1.0.2.gem https://rubygems.org/downloads/levenshtein-ffi-1.0.2.gem
+wget -O "$downloads"/gems/mime-types-1.25.gem https://rubygems.org/downloads/mime-types-1.25.gem
+wget -O "$downloads"/gems/multi_json-1.8.0.gem https://rubygems.org/downloads/multi_json-1.8.0.gem
+wget -O "$downloads"/gems/rake-0.9.6.gem https://rubygems.org/downloads/rake-0.9.6.gem
+wget -O "$downloads"/gems/rest-client-1.6.7.gem https://rubygems.org/downloads/rest-client-1.6.7.gem
+wget -O "$downloads"/gems/rspec-2.14.1.gem https://rubygems.org/downloads/rspec-2.14.1.gem
+wget -O "$downloads"/gems/rspec-core-2.14.5.gem https://rubygems.org/downloads/rspec-core-2.14.5.gem
+wget -O "$downloads"/gems/rspec-expectations-2.14.2.gem https://rubygems.org/downloads/rspec-expectations-2.14.2.gem
+wget -O "$downloads"/gems/rspec-mocks-2.14.3.gem https://rubygems.org/downloads/rspec-mocks-2.14.3.gem
+wget -O "$downloads"/gems/ruby-graphviz-1.0.9.gem https://rubygems.org/downloads/ruby-graphviz-1.0.9.gem
+wget -O "$downloads"/gems/simplecov-0.7.1.gem https://rubygems.org/downloads/simplecov-0.7.1.gem
+wget -O "$downloads"/gems/simplecov-html-0.7.1.gem https://rubygems.org/downloads/simplecov-html-0.7.1.gem
+wget -O "$downloads"/gems/term-ansicolor-1.2.2.gem https://rubygems.org/downloads/term-ansicolor-1.2.2.gem
+wget -O "$downloads"/gems/thor-0.18.1.gem https://rubygems.org/downloads/thor-0.18.1.gem
+wget -O "$downloads"/gems/tins-0.9.0.gem https://rubygems.org/downloads/tins-0.9.0.gem

@@ -1,0 +1,77 @@
+diff --git a/bin/crystal b/bin/crystal
+index ecbe088f6..bd3c00430 100755
+--- a/bin/crystal
++++ b/bin/crystal
+@@ -1,11 +1,9 @@
+ #!/usr/bin/env ruby
+ GC.disable unless ENV["CI"]
+ 
+-ENV['BUNDLE_GEMFILE'] = File.expand_path('../../Gemfile', File.realpath(__FILE__))
+-require 'bundler/setup'
++require 'forwardable'
+ require_relative '../lib/crystal'
+-require 'pry'
+-require 'pry-debugger'
++require 'pathname'
+ 
+ compiler = Crystal::Compiler.new
+ compiler.compile
+diff --git a/bootstrap/crystal/compiler.cr b/bootstrap/crystal/compiler.cr
+index dbdef7c37..72805c235 100644
+--- a/bootstrap/crystal/compiler.cr
++++ b/bootstrap/crystal/compiler.cr
+@@ -205,7 +205,7 @@ module Crystal
+           end
+         end
+         flags << " -Wl,-allow_stack_execute" if mod.has_require_flag?("darwin")
+-        flags << " -L#{@config.lib_dir}"
++        flags << " " << Program.exec("llvm-config-3.3 --ldflags")
+       end
+     end
+ 
+@@ -250,9 +250,9 @@ module Crystal
+           system "mv #{bc_name_new} #{bc_name}"
+           if compiler.release
+             system "#{compiler.opt} #{bc_name} -O3 -o #{bc_name_opt}"
+-            system "#{compiler.llc} #{bc_name_opt} -o #{s_name}"
++            system "#{compiler.llc} -relocation-model=pic #{bc_name_opt} -o #{s_name}"
+           else
+-            system "#{compiler.llc} #{bc_name} -o #{s_name}"
++            system "#{compiler.llc} -relocation-model=pic #{bc_name} -o #{s_name}"
+           end
+           system "#{compiler.clang} -c #{s_name} -o #{o_name}"
+         end
+diff --git a/lib/crystal/compiler.rb b/lib/crystal/compiler.rb
+index 84bbdd3f3..df731a8a5 100644
+--- a/lib/crystal/compiler.rb
++++ b/lib/crystal/compiler.rb
+@@ -147,7 +147,7 @@ module Crystal
+ 
+         llvm_modules = nil
+         with_stats_or_profile('codegen-llvm') do
+-          llvm_modules = program.build node, filename: filename, debug: @options[:debug], single_module: @options[:release]
++          llvm_modules = program.build node, filename: filename, debug: @options[:debug], single_module: true
+         end
+       rescue Crystal::Exception => ex
+         puts ex.to_s(source)
+@@ -195,9 +195,9 @@ module Crystal
+                 FileUtils.mv "#{bc_name}.new", bc_name
+                 if @options[:release]
+                   `#{@opt} #{bc_name} -O3 -o #{bc_name_opt}`
+-                  `#{@llc} #{bc_name_opt} -o #{s_name}`
++                  `#{@llc} -relocation-model=pic #{bc_name_opt} -o #{s_name}`
+                 else
+-                  `#{@llc} #{bc_name} -o #{s_name}`
++                  `#{@llc} -relocation-model=pic #{bc_name} -o #{s_name}`
+                 end
+                 `#{@clang} -c #{s_name} -o #{o_name}`
+               end
+@@ -275,7 +275,7 @@ module Crystal
+         end
+       end
+       flags << " -Wl,-allow_stack_execute" if RUBY_PLATFORM =~ /darwin/
+-      flags << " -L#{`llvm-config-3.3 --libdir`.strip}"
++      flags << " #{`llvm-config-3.3 --ldflags`.strip}"
+       flags
+     end
+   end

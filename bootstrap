@@ -1,0 +1,153 @@
+#!/bin/bash
+set -euo pipefail
+
+# CD to the directly this file is actually in
+cd "$(dirname "$(realpath --logical "$0")")"
+
+downloads="$(pwd)"/downloads
+files="$(pwd)"/files
+buildroot="$(pwd)"/buildroot
+src="$buildroot"/src
+stages="$(pwd)"/stages
+
+crystal_stages="01"
+
+export PATH="$buildroot/bin:$PATH"
+export PKG_CONFIG_PATH="$buildroot/lib/pkgconfig"
+export LD_LIBRARY_PATH="$buildroot/lib"
+export GEM_HOME="$buildroot"/lib/ruby/gems/1.9.1
+
+test -d "$downloads" || (echo "downloads directory doesn't exist" && exit 1)
+
+echo "==> Checking files"
+
+(
+    cd "$downloads"
+
+    sha256sum -c "$files"/openssl-1.0.2q.tar.gz.sha256
+    sha256sum -c "$files"/ruby-1.9.3-p551.tar.gz.sha256
+    sha256sum -c "$files"/llvm-3.3.src.tar.gz.sha256
+
+    cd "$downloads"/gems
+
+    sha256sum -c "$files"/gems.sha256
+)
+
+mkdir -p "$src" "$stages"
+
+echo "==> Installing OpenSSL"
+test -d "$src"/openssl-1.0.2q || (
+    cd "$src"
+
+    tar xzf "$downloads"/openssl-1.0.2q.tar.gz
+
+    cd openssl-1.0.2q
+
+    ./config --prefix="$buildroot" shared
+    make "-j$(nproc --all)"
+    make install
+)
+
+
+echo "==> Installing Ruby"
+test -d "$src"/ruby-1.9.3-p551 || (
+    cd "$src"
+
+    tar xzf "$downloads"/ruby-1.9.3-p551.tar.gz
+
+    cd ruby-1.9.3-p551
+
+    autoconf
+    ./configure --prefix="$buildroot" --enable-shared --disable-rpath
+    make "-j$(nproc --all)"
+    make install
+)
+
+echo "==> Installing LLVM 3.3"
+test -d "$src"/llvm-3.3.src || (
+    cd "$src"
+
+    rm -Rf llvm-3.3.src
+    tar xzf "$downloads"/llvm-3.3.src.tar.gz
+
+    cd llvm-3.3.src
+
+    CC=gcc CXX=g++ ./configure --prefix="$buildroot" --enable-shared --enable-assertions --with-python="$(command -v python2)"
+    make "-j$(nproc --all)"
+    make install
+    ln -sf "$buildroot"/bin/llvm-config "$buildroot"/bin/llvm-config-3.3
+)
+
+echo "==> Installing Gems"
+
+test -d "$src"/ruby-llvm || (
+    rm -Rf "$src"/ruby-llvm
+    git clone -q "$downloads"/gems/ruby-llvm.git "$src"/ruby-llvm
+
+    cd "$src"/ruby-llvm
+
+    git checkout aaadfe83a3f99b550f5f1b0756b1784db73e0c37
+    gem build ruby-llvm.gemspec
+)
+
+test -d "$src"/ruby-prof || (
+    rm -Rf "$src"/ruby-prof
+    git clone -q "$downloads"/gems/ruby-prof.git "$src"/ruby-prof
+
+    cd "$src"/ruby-prof
+
+    git checkout e1d1ba17e13f8ef5e24097034095ecc182d785e0
+    gem build ruby-prof.gemspec
+)
+
+cd "$src"
+
+test -f "$src"/gems-installed || (
+    gem install --no-rdoc --no-ri "$downloads"/gems/bundler-1.17.1.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/mime-types-1.25.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/rest-client-1.6.7.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/tins-0.9.0.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/term-ansicolor-1.2.2.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/multi_json-1.8.0.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/thor-0.18.1.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/simplecov-html-0.7.1.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/simplecov-0.7.1.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/coveralls-0.7.0.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/diff-lcs-1.2.4.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/ffi-1.9.0.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/json-1.7.7.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/levenshtein-ffi-1.0.2.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/rake-0.9.6.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/rspec-core-2.14.5.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/rspec-expectations-2.14.2.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/rspec-mocks-2.14.3.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/rspec-2.14.1.gem
+    gem install --no-rdoc --no-ri "$downloads"/gems/ruby-graphviz-1.0.9.gem
+    gem install --no-rdoc --no-ri "$src"/ruby-llvm/ruby-llvm-3.3.0.alpha.gem
+    gem install --no-rdoc --no-ri "$src"/ruby-prof/ruby-prof-0.13.0.gem
+
+    touch "$src"/gems-installed
+)
+
+clone-crystal-at() {
+    local ref="$1"
+
+    rm -Rf "$src"/crystal
+    git clone -q "$downloads"/crystal.git "$src"/crystal
+    (cd "$src"/crystal; git checkout -q "$ref")
+}
+
+
+echo "==> Bootstrapping Crystal (01/$crystal_stages)"
+test -f "$stages"/01-crystal || (
+    cd "$src"
+
+    clone-crystal-at 04964442a2de0268f63c492b22b17cb502724fc7
+
+    cd crystal
+
+    patch -p1 < "$files"/stage1.patch
+
+    bin/crystal -stats bootstrap/crystal.cr
+    mv crystal "$stages"/01-crystal
+)
