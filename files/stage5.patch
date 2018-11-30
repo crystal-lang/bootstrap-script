@@ -1,0 +1,13 @@
+diff --git a/src/compiler/crystal/type_inference/type_lookup.cr b/src/compiler/crystal/type_inference/type_lookup.cr
+index 4de3dc121..863a79d17 100644
+--- a/src/compiler/crystal/type_inference/type_lookup.cr
++++ b/src/compiler/crystal/type_inference/type_lookup.cr
+@@ -14,7 +14,7 @@ module Crystal
+       if the_type && the_type.is_a?(Type)
+         @type = the_type
+       else
+-        node.raise("uninitialized constant #{node.to_s_node}")
++        node.raise("uninitialized constant #{node}")
+       end
+     end
+ 
