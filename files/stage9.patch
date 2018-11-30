@@ -1,0 +1,397 @@
+diff --git a/spec/compiler/codegen/c_struct_spec.cr b/spec/compiler/codegen/c_struct_spec.cr
+index caed0f07e..50d0895ae 100644
+--- a/spec/compiler/codegen/c_struct_spec.cr
++++ b/spec/compiler/codegen/c_struct_spec.cr
+@@ -13,7 +13,7 @@ describe "Code gen: struct" do
+   end
+ 
+   it "codegens struct property setter" do
+-    run("#{CodeGenStructString}; bar = Foo::Bar.new; p = addressof(bar); p.value.y = 2.5_f32; bar.y").to_f32.should eq(2.5)
++    run("#{CodeGenStructString}; bar = Foo::Bar.new; p = pointerof(bar); p.value.y = 2.5_f32; bar.y").to_f32.should eq(2.5)
+   end
+ 
+   it "codegens set struct value with constant" do
+@@ -53,7 +53,7 @@ describe "Code gen: struct" do
+       end
+ 
+       foo = C::Foo.new
+-      (addressof(foo).as(Int32) + 1_i64).value = 2
++      (pointerof(foo).as(Int32) + 1_i64).value = 2
+ 
+       foo.bar.y
+       ").to_i.should eq(2)
+diff --git a/spec/compiler/codegen/pointer_spec.cr b/spec/compiler/codegen/pointer_spec.cr
+index b9c9b584f..613999208 100755
+--- a/spec/compiler/codegen/pointer_spec.cr
++++ b/spec/compiler/codegen/pointer_spec.cr
+@@ -3,7 +3,7 @@ require "../../spec_helper"
+ 
+ describe "Code gen: pointer" do
+   it "get pointer and value of it" do
+-    run("a = 1; b = addressof(a); b.value").to_i.should eq(1)
++    run("a = 1; b = pointerof(a); b.value").to_i.should eq(1)
+   end
+ 
+   it "get pointer of instance var" do
+@@ -14,7 +14,7 @@ describe "Code gen: pointer" do
+         end
+ 
+         def value_ptr
+-          addressof(@value)
++          pointerof(@value)
+         end
+       end
+ 
+@@ -25,11 +25,11 @@ describe "Code gen: pointer" do
+   end
+ 
+   it "set pointer value" do
+-    run("a = 1; b = addressof(a); b.value = 2; a").to_i.should eq(2)
++    run("a = 1; b = pointerof(a); b.value = 2; a").to_i.should eq(2)
+   end
+ 
+   it "get value of pointer to union" do
+-    run("a = 1.1; a = 1; b = addressof(a); b.value.to_i").to_i.should eq(1)
++    run("a = 1.1; a = 1; b = pointerof(a); b.value.to_i").to_i.should eq(1)
+   end
+ 
+   it "sets value of pointer to union" do
+@@ -44,7 +44,7 @@ describe "Code gen: pointer" do
+           @b = 2
+         end
+         def value
+-          p = addressof(@a)
++          p = pointerof(@a)
+           p += 1_i64
+           p.value
+         end
+@@ -62,7 +62,7 @@ describe "Code gen: pointer" do
+   end
+ 
+   it "codegens pointer cast" do
+-    run("a = 1_i64; addressof(a).as(Int32).value").to_i.should eq(1)
++    run("a = 1_i64; pointerof(a).as(Int32).value").to_i.should eq(1)
+   end
+ 
+   it "codegens pointer null" do
+@@ -70,7 +70,7 @@ describe "Code gen: pointer" do
+   end
+ 
+   it "codegens pointer as if condition" do
+-    run("a = 0; addressof(a) ? 1 : 2").to_i.should eq(1)
++    run("a = 0; pointerof(a) ? 1 : 2").to_i.should eq(1)
+   end
+ 
+   it "codegens null pointer as if condition" do
+@@ -85,7 +85,7 @@ describe "Code gen: pointer" do
+         end
+ 
+         def foo
+-          addressof(@a)
++          pointerof(@a)
+         end
+       end
+ 
+@@ -112,7 +112,7 @@ describe "Code gen: pointer" do
+       color2 = C::Color.new
+       color2.r = 20_u8
+ 
+-      p = addressof(color)
++      p = pointerof(color)
+       p.value = color2
+ 
+       color.r
+@@ -122,7 +122,7 @@ describe "Code gen: pointer" do
+   it "changes through var and reads from pointer" do
+     run("
+       x = 1
+-      px = addressof(x)
++      px = pointerof(x)
+       x = 2
+       px.value
+       ").to_i.should eq(2)
+@@ -138,7 +138,7 @@ describe "Code gen: pointer" do
+   it "calculates pointer diff" do
+     run("
+       x = 1
+-      (addressof(x) + 1_i64) - addressof(x)
++      (pointerof(x) + 1_i64) - pointerof(x)
+     ").to_i.should eq(1)
+   end
+ end
+diff --git a/spec/compiler/lexer/lexer_spec.cr b/spec/compiler/lexer/lexer_spec.cr
+index 462045f81..0eb63939f 100755
+--- a/spec/compiler/lexer/lexer_spec.cr
++++ b/spec/compiler/lexer/lexer_spec.cr
+@@ -125,7 +125,7 @@ describe "Lexer" do
+   it_lexes "\t", :SPACE
+   it_lexes "\n", :NEWLINE
+   it_lexes "\n\n\n", :NEWLINE
+-  it_lexes_keywords [:def, :if, :else, :elsif, :end, :true, :false, :class, :module, :include, :while, :nil, :do, :yield, :return, :unless, :next, :break, :begin, :lib, :fun, :type, :struct, :union, :enum, :macro, :ptr, :out, :require, :case, :when, :then, :of, :abstract, :rescue, :ensure, :is_a?, :alias, :addressof]
++  it_lexes_keywords [:def, :if, :else, :elsif, :end, :true, :false, :class, :module, :include, :while, :nil, :do, :yield, :return, :unless, :next, :break, :begin, :lib, :fun, :type, :struct, :union, :enum, :macro, :ptr, :out, :require, :case, :when, :then, :of, :abstract, :rescue, :ensure, :is_a?, :alias, :pointerof]
+   it_lexes_idents ["ident", "something", "with_underscores", "with_1", "foo?", "bar!", "foo$123"]
+   it_lexes_idents ["def?", "if?", "else?", "elsif?", "end?", "true?", "false?", "class?", "while?", "nil?", "do?", "yield?", "return?", "unless?", "next?", "break?", "begin?"]
+   it_lexes_idents ["def!", "if!", "else!", "elsif!", "end!", "true!", "false!", "class!", "while!", "nil!", "do!", "yield!", "return!", "unless!", "next!", "break!", "begin!"]
+diff --git a/spec/compiler/normalize/ssa_spec.cr b/spec/compiler/normalize/ssa_spec.cr
+index bc4e8011c..1007c5df8 100755
+--- a/spec/compiler/normalize/ssa_spec.cr
++++ b/spec/compiler/normalize/ssa_spec.cr
+@@ -185,11 +185,11 @@ describe "Normalize: ssa" do
+   end
+ 
+   it "stops ssa if address is taken" do
+-    assert_normalize "a = 1; x = addressof(a); a = 2", "a = 1\nx = addressof(a)\na = 2"
++    assert_normalize "a = 1; x = pointerof(a); a = 2", "a = 1\nx = pointerof(a)\na = 2"
+   end
+ 
+   it "stops ssa if address is taken 2" do
+-    assert_normalize "a = 1; a = 2; x = addressof(a); a = 3", "a = 1\na$1 = 2\nx = addressof(a$1)\na$1 = 3"
++    assert_normalize "a = 1; a = 2; x = pointerof(a); a = 3", "a = 1\na$1 = 2\nx = pointerof(a$1)\na$1 = 3"
+   end
+ 
+   it "performs ssa on var on nested if" do
+diff --git a/spec/compiler/parser/parser_spec.cr b/spec/compiler/parser/parser_spec.cr
+index 7bd975717..8cb893155 100755
+--- a/spec/compiler/parser/parser_spec.cr
++++ b/spec/compiler/parser/parser_spec.cr
+@@ -477,8 +477,10 @@ describe "Parser" do
+ 
+   it_parses "macro foo;end", Crystal::Macro.new("foo", [] of Arg)
+ 
+-  it_parses "a = 1; addressof(a)", [Assign.new("a".var, 1.int32), AddressOf.new("a".var)]
+-  it_parses "addressof(@a)", AddressOf.new("@a".instance_var)
++  it_parses "a = 1; pointerof(a)", [Assign.new("a".var, 1.int32), PointerOf.new("a".var)]
++  it_parses "pointerof(@a)", PointerOf.new("@a".instance_var)
++  it_parses "a = 1; pointerof(a)", [Assign.new("a".var, 1.int32), PointerOf.new("a".var)]
++  it_parses "pointerof(@a)", PointerOf.new("@a".instance_var)
+ 
+   it_parses "foo.is_a?(Const)", IsA.new("foo".call, "Const".ident)
+   it_parses "foo.is_a?(Foo | Bar)", IsA.new("foo".call, IdentUnion.new(["Foo".ident, "Bar".ident] of ASTNode))
+diff --git a/spec/compiler/type_inference/pointer_spec.cr b/spec/compiler/type_inference/pointer_spec.cr
+index b0a5f2f58..df6b2177d 100755
+--- a/spec/compiler/type_inference/pointer_spec.cr
++++ b/spec/compiler/type_inference/pointer_spec.cr
+@@ -3,19 +3,19 @@ require "../../spec_helper"
+ 
+ describe "Type inference: pointer" do
+   it "types int pointer" do
+-    assert_type("a = 1; addressof(a)") { pointer_of(int32) }
++    assert_type("a = 1; pointerof(a)") { pointer_of(int32) }
+   end
+ 
+   it "types pointer value" do
+-    assert_type("a = 1; b = addressof(a); b.value") { int32 }
++    assert_type("a = 1; b = pointerof(a); b.value") { int32 }
+   end
+ 
+   it "types pointer add" do
+-    assert_type("a = 1; addressof(a) + 1_i64") { pointer_of(int32) }
++    assert_type("a = 1; pointerof(a) + 1_i64") { pointer_of(int32) }
+   end
+ 
+   it "types pointer diff" do
+-    assert_type("a = 1; b = 2; addressof(a) - addressof(b)") { int64 }
++    assert_type("a = 1; b = 2; pointerof(a) - pointerof(b)") { int64 }
+   end
+ 
+   it "types Pointer.malloc" do
+@@ -31,11 +31,11 @@ describe "Type inference: pointer" do
+   end
+ 
+   it "type pointer casting" do
+-    assert_type("a = 1; addressof(a).as(Char)") { pointer_of(char) }
++    assert_type("a = 1; pointerof(a).as(Char)") { pointer_of(char) }
+   end
+ 
+   it "type pointer casting of object type" do
+-    assert_type("a = 1; addressof(a).as(String)") { string }
++    assert_type("a = 1; pointerof(a).as(String)") { string }
+   end
+ 
+   it "pointer malloc creates new type" do
+diff --git a/src/compiler/crystal/ast.cr b/src/compiler/crystal/ast.cr
+index cffff1955..99906f1cf 100644
+--- a/src/compiler/crystal/ast.cr
++++ b/src/compiler/crystal/ast.cr
+@@ -1410,7 +1410,7 @@ module Crystal
+     end
+   end
+ 
+-  class AddressOf < ASTNode
++  class PointerOf < ASTNode
+     @exp :: ASTNode+
+ 
+     def initialize(@exp)
+@@ -1432,7 +1432,7 @@ module Crystal
+     end
+ 
+     def clone_without_location
+-      AddressOf.new(@exp.clone)
++      PointerOf.new(@exp.clone)
+     end
+   end
+ 
+diff --git a/src/compiler/crystal/codegen.cr b/src/compiler/crystal/codegen.cr
+index 77c9f229a..b5ee5f5de 100644
+--- a/src/compiler/crystal/codegen.cr
++++ b/src/compiler/crystal/codegen.cr
+@@ -665,7 +665,7 @@ module Crystal
+       LLVM.null(llvm_type(node.type))
+     end
+ 
+-    def visit(node : AddressOf)
++    def visit(node : PointerOf)
+       node_exp = node.exp
+       case node_exp
+       when Var
+@@ -682,7 +682,7 @@ module Crystal
+ 
+         @last = gep llvm_self_ptr, 0, type.index_of_instance_var(node_exp.name)
+       else
+-        raise "Bug: addressof(#{node.to_s_node})"
++        raise "Bug: pointerof(#{node.to_s_node})"
+       end
+       false
+     end
+diff --git a/src/compiler/crystal/lexer.cr b/src/compiler/crystal/lexer.cr
+index 01d7e84c1..e95439d45 100644
+--- a/src/compiler/crystal/lexer.cr
++++ b/src/compiler/crystal/lexer.cr
+@@ -429,10 +429,6 @@ module Crystal
+           if next_char == 's' && next_char == 't' && next_char == 'r' && next_char == 'a' && next_char == 'c' && next_char == 't'
+             return check_ident_or_keyword(:abstract, start, start_column)
+           end
+-        when 'd'
+-          if next_char == 'd' && next_char == 'r' && next_char == 'e' && next_char == 's' && next_char == 's' && next_char == 'o' && next_char == 'f'
+-            return check_ident_or_keyword(:addressof, start, start_column)
+-          end
+         when 'l'
+           if next_char == 'i' && next_char == 'a' && next_char == 's'
+             return check_ident_or_keyword(:alias, start, start_column)
+@@ -571,8 +567,15 @@ module Crystal
+         end
+         scan_ident(start, start_column)
+       when 'p'
+-        if next_char == 't' && next_char == 'r'
+-          return check_ident_or_keyword(:ptr, start, start_column)
++        case next_char
++        when 't'
++          if next_char == 'r'
++            return check_ident_or_keyword(:ptr, start, start_column)
++          end
++        when 'o'
++          if next_char == 'i' && next_char == 'n' && next_char == 't' && next_char == 'e' && next_char == 'r' && next_char == 'o' && next_char == 'f'
++            return check_ident_or_keyword(:pointerof, start, start_column)
++          end
+         end
+         scan_ident(start, start_column)
+       when 'r'
+diff --git a/src/compiler/crystal/normalizer.cr b/src/compiler/crystal/normalizer.cr
+index 698bfd350..58be50cdc 100644
+--- a/src/compiler/crystal/normalizer.cr
++++ b/src/compiler/crystal/normalizer.cr
+@@ -396,7 +396,7 @@ module Crystal
+       end
+     end
+ 
+-    def transform(node : AddressOf)
++    def transform(node : PointerOf)
+       exp = node.exp
+ 
+       if exp.is_a?(Var)
+diff --git a/src/compiler/crystal/parser.cr b/src/compiler/crystal/parser.cr
+index 8d8ab4e9d..16683a692 100644
+--- a/src/compiler/crystal/parser.cr
++++ b/src/compiler/crystal/parser.cr
+@@ -515,7 +515,7 @@ module Crystal
+         #   if atomic.block
+         #     raise "'ptr' can't receive a block"
+         #   end
+-        #   atomic = AddressOf.new(atomic_obj)
++        #   atomic = PointerOf.new(atomic_obj)
+         #   atomic.location = location
+         when "responds_to?"
+           if atomic.args.length != 1
+@@ -634,8 +634,8 @@ module Crystal
+           parse_fun_def(true)
+         when :alias
+           parse_alias
+-        when :addressof
+-          parse_addressof
++        when :pointerof
++          parse_pointerof
+         else
+           parse_var_or_call
+         end
+@@ -2369,7 +2369,7 @@ module Crystal
+       node
+     end
+ 
+-    def parse_addressof
++    def parse_pointerof
+       next_token_skip_space
+ 
+       check :"("
+@@ -2381,7 +2381,7 @@ module Crystal
+       check :")"
+       next_token_skip_space
+ 
+-      AddressOf.new(exp)
++      PointerOf.new(exp)
+     end
+ 
+     def parse_type_def
+diff --git a/src/compiler/crystal/to_s.cr b/src/compiler/crystal/to_s.cr
+index 84faf04f6..e05183db4 100644
+--- a/src/compiler/crystal/to_s.cr
++++ b/src/compiler/crystal/to_s.cr
+@@ -719,8 +719,8 @@ module Crystal
+       false
+     end
+ 
+-    def visit(node : AddressOf)
+-      @str << "addressof("
++    def visit(node : PointerOf)
++      @str << "pointerof("
+       node.exp.accept(self)
+       @str << ")"
+       false
+diff --git a/src/compiler/crystal/transformer.cr b/src/compiler/crystal/transformer.cr
+index a1daa451b..db745e204 100644
+--- a/src/compiler/crystal/transformer.cr
++++ b/src/compiler/crystal/transformer.cr
+@@ -151,7 +151,7 @@ module Crystal
+       node
+     end
+ 
+-    def transform(node : AddressOf)
++    def transform(node : PointerOf)
+       node.exp = node.exp.transform(self)
+       node
+     end
+diff --git a/src/compiler/crystal/type_inference.cr b/src/compiler/crystal/type_inference.cr
+index 3e382dc8d..d7af37608 100644
+--- a/src/compiler/crystal/type_inference.cr
++++ b/src/compiler/crystal/type_inference.cr
+@@ -1021,7 +1021,7 @@ module Crystal
+       node.type = instance_type
+     end
+ 
+-    def visit(node : AddressOf)
++    def visit(node : PointerOf)
+       node.mod = @mod
+       node_exp = node.exp
+       var = case node_exp
+diff --git a/src/compiler/crystal/type_inference/ast.cr b/src/compiler/crystal/type_inference/ast.cr
+index 7258e12a6..bf456caa4 100644
+--- a/src/compiler/crystal/type_inference/ast.cr
++++ b/src/compiler/crystal/type_inference/ast.cr
+@@ -136,7 +136,7 @@ module Crystal
+     end
+   end
+ 
+-  class AddressOf
++  class PointerOf
+     property! mod
+ 
+     def map_type(type)

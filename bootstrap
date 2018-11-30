@@ -232,3 +232,16 @@ test -f "$stages"/08-crystal || (
 
     "$stages"/07-crystal -stats --llc '-relocation-model=pic' -o "$stages"/08-crystal src/compiler/crystal.cr
 )
+
+echo "==> Bootstrapping Crystal (09/$crystal_stages)"
+test -f "$stages"/09-crystal || (
+    cd "$src"
+
+    clone-crystal-at 6f084f00e416045a6a5de16e8a0637831e041f22
+
+    cd crystal
+
+    # addressof was renamed to pointerof in a sinle commit. This patch is just the compiler changes.
+    patch -p1 < "$files"/stage9.patch
+    "$stages"/08-crystal -stats --llc '-relocation-model=pic' -o "$stages"/09-crystal src/compiler/crystal.cr
+)
