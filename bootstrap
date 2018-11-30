@@ -16,6 +16,7 @@ export PATH="$buildroot/bin:$PATH"
 export PKG_CONFIG_PATH="$buildroot/lib/pkgconfig"
 export LD_LIBRARY_PATH="$buildroot/lib"
 export GEM_HOME="$buildroot"/lib/ruby/gems/1.9.1
+export CRYSTAL_PATH="$src"/crystal/src
 
 test -d "$downloads" || (echo "downloads directory doesn't exist" && exit 1)
 
@@ -311,4 +312,16 @@ test -f "$stages"/15-crystal || (
     cd crystal
 
     "$stages"/14-crystal -stats --llc '-relocation-model=pic' -o "$stages"/15-crystal src/compiler/crystal.cr
+)
+
+echo "==> Bootstrapping Crystal (16/$crystal_stages)"
+test -f "$stages"/16-crystal || (
+    cd "$src"
+
+    clone-crystal-at 12d3afc73ab370dff7b01a4181cd0e351914e4fa
+
+    cd crystal
+
+    patch -p1 < "$files"/stage16.patch
+    "$stages"/15-crystal -stats --llc '-relocation-model=pic' -o "$stages"/16-crystal src/compiler/crystal.cr
 )
