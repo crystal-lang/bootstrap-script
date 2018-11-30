@@ -151,3 +151,16 @@ test -f "$stages"/01-crystal || (
     bin/crystal -stats bootstrap/crystal.cr
     mv crystal "$stages"/01-crystal
 )
+
+echo "==> Bootstrapping Crystal (02/$crystal_stages)"
+test -f "$stages"/02-crystal || (
+    cd "$src"
+
+    clone-crystal-at bffda57eafff50a41e86618f7c2726803d31e42c
+
+    cd crystal
+
+    sed -i 's/`llvm-config --libs --ldflags`/LLVM-3.3/' src/compiler/crystal/llvm.cr
+
+    "$stages"/01-crystal -stats -o "$stages"/02-crystal src/compiler/crystal.cr
+)

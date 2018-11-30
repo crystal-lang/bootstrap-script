@@ -41,6 +41,19 @@ index dbdef7c37..72805c235 100644
            end
            system "#{compiler.clang} -c #{s_name} -o #{o_name}"
          end
+diff --git a/bootstrap/crystal/program.cr b/bootstrap/crystal/program.cr
+index fca150a8b..a3762944f 100644
+--- a/bootstrap/crystal/program.cr
++++ b/bootstrap/crystal/program.cr
+@@ -326,7 +326,7 @@ module Crystal
+     end
+ 
+     def require_from_load_path(file)
+-      file = File.expand_path("std/#{file}")
++      file = File.expand_path("src/#{file}")
+       # file = File.expand_path("../../../std/#{file}", __FILE__)
+       require_absolute file
+     end
 diff --git a/lib/crystal/compiler.rb b/lib/crystal/compiler.rb
 index 84bbdd3f3..df731a8a5 100644
 --- a/lib/crystal/compiler.rb
