@@ -1,0 +1,13 @@
+diff --git a/src/compiler/crystal/codegen.cr b/src/compiler/crystal/codegen.cr
+index 4d0c896e0..0b7630efd 100644
+--- a/src/compiler/crystal/codegen.cr
++++ b/src/compiler/crystal/codegen.cr
+@@ -2216,7 +2216,7 @@ module Crystal
+       elsif return_type.no_return?
+         unreachable
+       elsif return_type.represented_as_union?
+-        if target_def && target_def.body.type? != return_type && !target_def.body.returns?
++        if target_def && target_def.body.type? != return_type && !target_def.body.returns? && !target_def.body.type.no_return?
+           @last = assign_to_return_union(return_type, target_def.body.type, @last)
+         else
+           @last = load @last
