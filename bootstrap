@@ -491,3 +491,14 @@ test -f "$stages"/30-crystal || (
     git revert -n e5909ae322ecc292512c8d58decb4cd37c344fbd
     "$stages"/29-crystal --stats --llc '-relocation-model=pic' -o "$stages"/30-crystal src/compiler/crystal.cr
 )
+
+echo "==> Bootstrapping Crystal (31/$crystal_stages)"
+test -f "$stages"/31-crystal || (
+    cd "$src"
+
+    clone-crystal-at b50b0226d9b5f8c8688236e54104918bc06ea526
+
+    cd crystal
+
+    "$stages"/30-crystal --stats --llc '-relocation-model=pic' -o "$stages"/31-crystal src/compiler/crystal.cr
+)
