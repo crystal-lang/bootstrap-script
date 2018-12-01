@@ -1,0 +1,149 @@
+diff --git a/src/compiler/crystal/ast.cr b/src/compiler/crystal/ast.cr
+index 779e56dce..ee1c1e7a7 100644
+--- a/src/compiler/crystal/ast.cr
++++ b/src/compiler/crystal/ast.cr
+@@ -319,7 +319,7 @@ module Crystal
+     end
+   end
+ 
+-  class RegexpLiteral < ASTNode
++  class RegexLiteral < ASTNode
+     property :value
+     property :modifiers
+ 
+@@ -331,7 +331,7 @@ module Crystal
+     end
+ 
+     def clone_without_location
+-      RegexpLiteral.new(@value, @modifiers)
++      RegexLiteral.new(@value, @modifiers)
+     end
+   end
+ 
+diff --git a/src/compiler/crystal/lexer.cr b/src/compiler/crystal/lexer.cr
+index bed394f3c..d6cc6027b 100644
+--- a/src/compiler/crystal/lexer.cr
++++ b/src/compiler/crystal/lexer.cr
+@@ -231,14 +231,14 @@ module Crystal
+               next_char
+             else
+               if 'a' <= @buffer.value.downcase <= 'z'
+-                raise "unknown regexp option: #{@buffer.value}"
++                raise "unknown regex option: #{@buffer.value}"
+               end
+               break
+             end
+           end
+ 
+-          @token.type = :REGEXP
+-          @token.regexp_modifiers = modifiers
++          @token.type = :REGEX
++          @token.regex_modifiers = modifiers
+           @token.value = string_buffer.to_s
+         end
+       when '%'
+diff --git a/src/compiler/crystal/normalizer.cr b/src/compiler/crystal/normalizer.cr
+index c18efcc3f..55369c3c0 100644
+--- a/src/compiler/crystal/normalizer.cr
++++ b/src/compiler/crystal/normalizer.cr
+@@ -131,10 +131,10 @@ module Crystal
+       new_node.transform(self)
+     end
+ 
+-    def transform(node : RegexpLiteral)
+-      const_name = "#Regexp_#{node.value}_#{node.modifiers}"
++    def transform(node : RegexLiteral)
++      const_name = "#Regex_#{node.value}_#{node.modifiers}"
+       unless program.types[const_name]?
+-        constructor = Call.new(Ident.new(["Regexp"], true), "new", [StringLiteral.new(node.value), NumberLiteral.new(node.modifiers, :i32)] of ASTNode)
++        constructor = Call.new(Ident.new(["Regex"], true), "new", [StringLiteral.new(node.value), NumberLiteral.new(node.modifiers, :i32)] of ASTNode)
+         program.types[const_name] = Const.new program, program, const_name, constructor, [program] of Type, program
+       end
+ 
+diff --git a/src/compiler/crystal/parser.cr b/src/compiler/crystal/parser.cr
+index 86ebee06c..9d38a1eea 100644
+--- a/src/compiler/crystal/parser.cr
++++ b/src/compiler/crystal/parser.cr
+@@ -614,8 +614,8 @@ module Crystal
+         parse_string_array
+       when :SYMBOL
+         node_and_next_token SymbolLiteral.new(@token.value.to_s)
+-      when :REGEXP
+-        node_and_next_token RegexpLiteral.new(@token.value.to_s, @token.regexp_modifiers)
++      when :REGEX
++        node_and_next_token RegexLiteral.new(@token.value.to_s, @token.regex_modifiers)
+       when :GLOBAL
+         node_and_next_token Global.new(@token.value.to_s)
+       when :GLOBAL_MATCH
+@@ -1923,7 +1923,7 @@ module Crystal
+         end
+       when :"{"
+         return nil unless allow_curly
+-      when :CHAR, :STRING, :STRING_START, :STRING_ARRAY_START, :NUMBER, :IDENT, :SYMBOL, :INSTANCE_VAR, :CLASS_VAR, :CONST, :GLOBAL, :GLOBAL_MATCH, :REGEXP, :"(", :"!", :"[", :"[]", :"+", :"-", :"&", :"->"
++      when :CHAR, :STRING, :STRING_START, :STRING_ARRAY_START, :NUMBER, :IDENT, :SYMBOL, :INSTANCE_VAR, :CLASS_VAR, :CONST, :GLOBAL, :GLOBAL_MATCH, :REGEX, :"(", :"!", :"[", :"[]", :"+", :"-", :"&", :"->"
+         # Nothing
+       else
+         return nil
+diff --git a/src/compiler/crystal/to_s.cr b/src/compiler/crystal/to_s.cr
+index b718d0f0b..f0bf22d3c 100644
+--- a/src/compiler/crystal/to_s.cr
++++ b/src/compiler/crystal/to_s.cr
+@@ -559,7 +559,7 @@ module Crystal
+       false
+     end
+ 
+-    def visit(node : RegexpLiteral)
++    def visit(node : RegexLiteral)
+       @str << "/"
+       @str << node.value
+       @str << "/"
+diff --git a/src/compiler/crystal/token.cr b/src/compiler/crystal/token.cr
+index 1adfbe8a7..adbd5317f 100644
+--- a/src/compiler/crystal/token.cr
++++ b/src/compiler/crystal/token.cr
+@@ -11,7 +11,7 @@ module Crystal
+     property :line_number
+     property :column_number
+     property :filename
+-    property :regexp_modifiers
++    property :regex_modifiers
+ 
+     def initialize
+       @type = :EOF
+@@ -21,7 +21,7 @@ module Crystal
+       @string_open_count = 0
+       @line_number = 0
+       @column_number = 0
+-      @regexp_modifiers = 0
++      @regex_modifiers = 0
+     end
+ 
+     def location
+diff --git a/src/compiler/crystal/transformer.cr b/src/compiler/crystal/transformer.cr
+index 6dff23d20..bd0d38a26 100644
+--- a/src/compiler/crystal/transformer.cr
++++ b/src/compiler/crystal/transformer.cr
+@@ -368,7 +368,7 @@ module Crystal
+       node
+     end
+ 
+-    def transform(node : RegexpLiteral)
++    def transform(node : RegexLiteral)
+       node
+     end
+ 
+diff --git a/src/compiler/crystal/type_inference.cr b/src/compiler/crystal/type_inference.cr
+index 9277ad1d9..b2bd543d4 100644
+--- a/src/compiler/crystal/type_inference.cr
++++ b/src/compiler/crystal/type_inference.cr
+@@ -1174,8 +1174,8 @@ module Crystal
+       raise "Bug: When node '#{node}' (#{node.location}) should have been eliminated in normalize"
+     end
+ 
+-    def visit(node : RegexpLiteral)
+-      raise "Bug: RegexpLiteral node '#{node}' (#{node.location}) should have been eliminated in normalize"
++    def visit(node : RegexLiteral)
++      raise "Bug: RegexLiteral node '#{node}' (#{node.location}) should have been eliminated in normalize"
+     end
+ 
+     def visit(node : ArrayLiteral)
