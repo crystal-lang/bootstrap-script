@@ -1,0 +1,90 @@
+diff --git a/src/compiler/crystal/codegen.cr b/src/compiler/crystal/codegen.cr
+index 06e66e133..a83c30a9d 100644
+--- a/src/compiler/crystal/codegen.cr
++++ b/src/compiler/crystal/codegen.cr
+@@ -388,7 +388,7 @@ module Crystal
+     end
+ 
+     def codegen_cast(from_type : IntegerType, to_type : CharType, arg)
+-      codegen_cast(from_type, @mod.int8, arg)
++      codegen_cast(from_type, @mod.int32, arg)
+     end
+ 
+     def codegen_cast(from_type : CharType, to_type : IntegerType, arg)
+@@ -684,7 +684,7 @@ module Crystal
+     end
+ 
+     def visit(node : CharLiteral)
+-      @last = int8(node.value[0].ord)
++      @last = int32(node.value[0].ord)
+     end
+ 
+     def visit(node : StringLiteral)
+diff --git a/src/compiler/crystal/program.cr b/src/compiler/crystal/program.cr
+index 078fafdcb..ca2066837 100644
+--- a/src/compiler/crystal/program.cr
++++ b/src/compiler/crystal/program.cr
+@@ -36,7 +36,7 @@ module Crystal
+       @types["Void"] = @void = VoidType.new self, self, "Void", @value, LLVM::Void, 1
+       @types["Nil"] = @nil = NilType.new self, self, "Nil", @value, LLVM::Int1, 1
+       @types["Bool"] = @bool = BoolType.new self, self, "Bool", @value, LLVM::Int1, 1
+-      @types["Char"] = @char = CharType.new self, self, "Char", @value, LLVM::Int8, 1
++      @types["Char"] = @char = CharType.new self, self, "Char", @value, LLVM::Int32, 4
+ 
+       @types["Int"] = @int = ValueType.new self, self, "Int", @number
+       @int.abstract = true
+@@ -68,7 +68,7 @@ module Crystal
+       @string.type_id = 1
+ 
+       @string.lookup_instance_var("@length").set_type(@int32)
+-      @string.lookup_instance_var("@c").set_type(@char)
++      @string.lookup_instance_var("@c").set_type(@uint8)
+ 
+       @types["Class"] = @class = Metaclass.new(self, @object, @reference, "Class")
+       @object.force_metaclass @class
+@@ -340,8 +340,8 @@ module Crystal
+ 
+     getter :nil_var
+ 
+-    def char_pointer
+-      pointer_of char
++    def uint8_pointer
++      pointer_of uint8
+     end
+ 
+     def pointer_of(type)
+diff --git a/src/compiler/crystal/type_inference.cr b/src/compiler/crystal/type_inference.cr
+index eaa76ca70..6362cd384 100644
+--- a/src/compiler/crystal/type_inference.cr
++++ b/src/compiler/crystal/type_inference.cr
+@@ -805,7 +805,7 @@ module Crystal
+       when :argc
+         node.type = @mod.int32
+       when :argv
+-        node.type = @mod.pointer_of(@mod.pointer_of(@mod.char))
++        node.type = @mod.pointer_of(@mod.pointer_of(@mod.uint8))
+       when :float32_infinity
+         node.type = @mod.float32
+       when :float64_infinity
+@@ -829,7 +829,7 @@ module Crystal
+       when :object_id
+         node.type = mod.uint64
+       when :object_to_cstr
+-        node.type = mod.char_pointer
++        node.type = mod.uint8_pointer
+       when :object_crystal_type_id
+         node.type = mod.int32
+       when :math_sqrt_float32
+diff --git a/src/compiler/crystal/type_inference/call.cr b/src/compiler/crystal/type_inference/call.cr
+index f5de1b691..0044f556d 100644
+--- a/src/compiler/crystal/type_inference/call.cr
++++ b/src/compiler/crystal/type_inference/call.cr
+@@ -393,7 +393,7 @@ module Crystal
+           if actual_type.nil_type? && expected_type.pointer?
+             nil_conversions ||= [] of Int32
+             nil_conversions << i
+-          elsif (actual_type == mod.string || actual_type == mod.string.hierarchy_type) && (expected_type.is_a?(PointerInstanceType) && expected_type.var.type == mod.char)
++          elsif (actual_type == mod.string || actual_type == mod.string.hierarchy_type) && (expected_type.is_a?(PointerInstanceType) && expected_type.var.type == mod.uint8)
+             string_conversions ||= [] of Int32
+             string_conversions << i
+           elsif expected_type.is_a?(FunType) && actual_type.is_a?(FunType) && expected_type.return_type == mod.void && expected_type.arg_types == actual_type.arg_types
