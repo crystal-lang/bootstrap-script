@@ -1,0 +1,73 @@
+diff --git a/src/compiler/crystal/codegen.cr b/src/compiler/crystal/codegen.cr
+index ff27406a1..79640d989 100644
+--- a/src/compiler/crystal/codegen.cr
++++ b/src/compiler/crystal/codegen.cr
+@@ -527,7 +527,7 @@ module Crystal
+     end
+ 
+     def codegen_primitive_struct_new(node, target_def, call_args)
+-      allocate_aggregate (node.type as PointerInstanceType).element_type
++      allocate_aggregate node.type
+     end
+ 
+     def codegen_primitive_struct_set(node, target_def, call_args)
+@@ -549,7 +549,7 @@ module Crystal
+     end
+ 
+     def codegen_primitive_union_new(node, target_def, call_args)
+-      allocate_aggregate (node.type as PointerInstanceType).element_type
++      allocate_aggregate node.type
+     end
+ 
+     def codegen_primitive_union_set(node, target_def, call_args)
+@@ -2658,7 +2658,7 @@ module Crystal
+ 
+     def allocate_aggregate(type)
+       struct_type = llvm_struct_type(type)
+-      if type.struct?
++      if type.passed_by_value?
+         @last = alloca struct_type
+       else
+         @last = malloc struct_type
+diff --git a/src/compiler/crystal/codegen/llvm_typer.cr b/src/compiler/crystal/codegen/llvm_typer.cr
+index 3df35b405..b87c61274 100644
+--- a/src/compiler/crystal/codegen/llvm_typer.cr
++++ b/src/compiler/crystal/codegen/llvm_typer.cr
+@@ -215,7 +215,7 @@ module Crystal
+ 
+     def create_llvm_struct_type(type : CUnionType)
+       max_size = 0
+-      max_type :: LibLLVM::TypeRef
++      max_type = nil
+       type.vars.each do |name, var|
+         var_type = var.type
+         unless var_type.void?
+@@ -228,7 +228,7 @@ module Crystal
+         end
+       end
+ 
+-      LLVM.struct_type([max_type] of LibLLVM::TypeRef, type.llvm_name)
++      LLVM.struct_type([max_type.not_nil!] of LibLLVM::TypeRef, type.llvm_name)
+     end
+ 
+     def create_llvm_struct_type(type : Type)
+diff --git a/src/compiler/crystal/type_inference.cr b/src/compiler/crystal/type_inference.cr
+index f41a4a469..614ddf60c 100644
+--- a/src/compiler/crystal/type_inference.cr
++++ b/src/compiler/crystal/type_inference.cr
+@@ -1159,13 +1159,13 @@ module Crystal
+       when :float64_infinity
+         node.type = @mod.float64
+       when :struct_new
+-        node.type = @mod.pointer_of(scope.instance_type)
++        node.type = scope.instance_type
+       when :struct_set
+         node.bind_to @vars["value"]
+       when :struct_get
+         visit_struct_get node
+       when :union_new
+-        node.type = @mod.pointer_of(scope.instance_type)
++        node.type = scope.instance_type
+       when :union_set
+         node.bind_to @vars["value"]
+       when :union_get
