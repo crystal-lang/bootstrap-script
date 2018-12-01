@@ -513,3 +513,14 @@ test -f "$stages"/32-crystal || (
 
     "$stages"/31-crystal --stats --llc '-relocation-model=pic' -o "$stages"/32-crystal src/compiler/crystal.cr
 )
+
+echo "==> Bootstrapping Crystal (33/$crystal_stages)"
+test -f "$stages"/33-crystal || (
+    cd "$src"
+
+    clone-crystal-at b169aec39aff9b8dce35faf2af2fb4bd95866cf3
+
+    cd crystal
+
+    "$stages"/32-crystal --stats --llc '-relocation-model=pic' -o "$stages"/33-crystal src/compiler/crystal.cr
+)
