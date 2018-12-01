@@ -1,0 +1,16 @@
+diff --git a/src/compiler/crystal/codegen.cr b/src/compiler/crystal/codegen.cr
+index ef903f871..91f2ce277 100644
+--- a/src/compiler/crystal/codegen.cr
++++ b/src/compiler/crystal/codegen.cr
+@@ -2132,6 +2132,11 @@ module Crystal
+     end
+ 
+     def codegen_return(exp_type, fun_type)
++      if exp_type && exp_type.no_return?
++        unreachable
++        return
++      end
++
+       case fun_type
+       when VoidType
+         yield nil
