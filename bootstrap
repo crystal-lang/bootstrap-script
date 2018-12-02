@@ -1008,3 +1008,15 @@ test -d "$src"/llvm-3.5.2.src || (
     make "-j$(nproc --all)"
     make install
 )
+
+echo "==> Bootstrapping Crystal 0.4.5 (75/$crystal_stages)"
+test -f "$stages"/75-0.4.5-crystal || (
+    cd "$src"
+
+    clone-crystal-at 0.4.5
+
+    cd crystal
+
+    sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr
+    "$stages"/74-0.4.4-crystal --stats -o "$stages"/75-0.4.5-crystal src/compiler/crystal.cr
+)
