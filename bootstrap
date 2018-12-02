@@ -832,3 +832,15 @@ test -f "$stages"/60-0.3.0-crystal || (
     git revert -n 623d4d6801a1980590219174ce78d26028713879
     "$stages"/59-0.2.0-crystal --stats --llc '-relocation-model=pic' -o "$stages"/60-0.3.0-crystal src/compiler/crystal.cr
 )
+
+echo "==> Bootstrapping Crystal (61/$crystal_stages)"
+test -f "$stages"/61-crystal || (
+    cd "$src"
+
+    clone-crystal-at 632d53d703c7766b3d58670aaaf94696cd55271b
+
+    cd crystal
+
+    patch -p1 < "$files"/stage61.patch
+    "$stages"/60-0.3.0-crystal --stats --llc '-relocation-model=pic' -o "$stages"/61-crystal src/compiler/crystal.cr
+)
