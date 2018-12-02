@@ -1,0 +1,572 @@
+diff --git a/src/compiler/crystal/codegen.cr b/src/compiler/crystal/codegen.cr
+index e24e78e24..d6cb8f7f5 100644
+--- a/src/compiler/crystal/codegen.cr
++++ b/src/compiler/crystal/codegen.cr
+@@ -232,12 +232,8 @@ module Crystal
+                 LLVM.float(Float32::INFINITY)
+               when :float64_infinity
+                 LLVM.double(Float64::INFINITY)
+-              when :struct_hash
+-                codegen_primitive_struct_hash
+               when :struct_equals
+                 codegen_primitive_struct_equals
+-              when :struct_to_s
+-                codegen_primitive_struct_to_s
+               else
+                 raise "Bug: unhandled primitive in codegen visit: #{node.name}"
+               end
+@@ -708,49 +704,6 @@ module Crystal
+       end
+     end
+ 
+-    def codegen_primitive_struct_hash
+-      type = context.type as InstanceVarContainer
+-      ivars = type.all_instance_vars
+-
+-      # Generate:
+-      # hash = 0
+-      # - for each instance var
+-      #   hash = 31 * hash + @ivar.hash
+-      # - end
+-      # hash
+-
+-      hash_var = Var.new("hash")
+-      n0 = NumberLiteral.new(0, :i32)
+-      n31 = NumberLiteral.new(31, :i32)
+-
+-      vars = MetaVars.new
+-      vars["hash"] = MetaVar.new(hash_var.name)
+-
+-      exps = [] of ASTNode
+-      exps << Assign.new(hash_var, n0)
+-      i = 0
+-      ivars.each_value do |ivar|
+-        ivar_name = "#ivar#{i}"
+-        ivar_var = Var.new(ivar_name, ivar.type)
+-
+-        context.vars[ivar_name] = LLVMVar.new(aggregate_index(llvm_self, i), ivar.type)
+-        vars[ivar_name] = MetaVar.new(ivar_var.name)
+-
+-        mul = Call.new(n31, "*", [hash_var] of ASTNode)
+-        ivar_hash = Call.new(ivar_var, "hash")
+-        add = Call.new(mul, "+", [ivar_hash] of ASTNode)
+-        exps << Assign.new(hash_var, add)
+-        i += 1
+-      end
+-      exps << hash_var
+-      exps = Expressions.new(exps)
+-      visitor = TypeVisitor.new(@mod, vars, Def.new("dummy", [] of Arg))
+-      exps.accept visitor
+-      alloca_vars visitor.meta_vars
+-      exps.accept self
+-      @last
+-    end
+-
+     def codegen_primitive_struct_equals
+       type = context.type as InstanceVarContainer
+       ivars = type.all_instance_vars
+@@ -795,37 +748,6 @@ module Crystal
+       @last
+     end
+ 
+-    def codegen_primitive_struct_to_s
+-      type = context.type as InstanceVarContainer
+-      ivars = type.all_instance_vars
+-
+-      # Generate
+-      # "ClassName(#{ivar_name}=#{ivar_value}, ...)"
+-
+-      vars = MetaVars.new
+-
+-      exps = [] of ASTNode
+-      exps << StringLiteral.new("#{type}(")
+-      i = 0
+-      ivars.each_value do |ivar|
+-        ivar_name = "#ivar#{i}"
+-        ivar_var = Var.new(ivar_name, ivar.type)
+-
+-        context.vars[ivar_name] = LLVMVar.new(aggregate_index(llvm_self, i), ivar.type)
+-        vars[ivar_name] = MetaVar.new(ivar_var.name)
+-
+-        exps << StringLiteral.new(i == 0 ? "#{ivar.name}=" : ", #{ivar.name}=")
+-        exps << ivar_var
+-        i += 1
+-      end
+-      exps << StringLiteral.new(")")
+-      exps = StringInterpolation.new(exps)
+-      exps = @mod.normalize(exps)
+-      exps.accept TypeVisitor.new(@mod, vars, Def.new("dummy", [] of Arg))
+-      exps.accept self
+-      @last
+-    end
+-
+     def visit(node : ASTNode)
+       true
+     end
+@@ -1874,7 +1796,7 @@ module Crystal
+       body = target_def.body
+       if body.is_a?(Primitive)
+         case body.name
+-        when :struct_hash, :struct_equals, :struct_to_s
++        when :struct_equals
+           # Skip: we want a method body for these
+         else
+           # Change context type: faster then creating a new context
+diff --git a/src/compiler/crystal/macro_expander.cr b/src/compiler/crystal/macros.cr
+similarity index 80%
+rename from src/compiler/crystal/macro_expander.cr
+rename to src/compiler/crystal/macros.cr
+index 0e6d22e7d..b17274196 100644
+--- a/src/compiler/crystal/macro_expander.cr
++++ b/src/compiler/crystal/macros.cr
+@@ -1,16 +1,66 @@
+ module Crystal
++  class Program
++    def expand_def_macros
++      until @def_macros.empty?
++        def_macro = @def_macros.pop
++        expand_def_macro def_macro
++      end
++    end
++
++    def expand_def_macro(target_def)
++      the_macro = Macro.new("macro_#{target_def.object_id}", [] of Arg, target_def.body)
++      the_macro.location = target_def.location
++
++      owner = target_def.owner.not_nil!
++
++      begin
++        generated_source = @program.expand_macro owner, target_def.body
++      rescue ex : Crystal::Exception
++        target_def.raise "expanding macro", ex
++      end
++
++      vars = MetaVars.new
++      target_def.args.each do |arg|
++        vars[arg.name] = MetaVar.new(arg.name, arg.type)
++      end
++      target_def.vars = vars
++
++      begin
++        arg_names = target_def.args.map(&.name)
++
++        parser = Parser.new(generated_source, [Set.new(arg_names)])
++        parser.filename = VirtualFile.new(the_macro, generated_source)
++        generated_nodes = parser.parse
++      rescue ex : Crystal::SyntaxException
++        target_def.raise "def macro didn't expand to a valid program, it expanded to:\n\n#{"=" * 80}\n#{"-" * 80}\n#{generated_source.lines.to_s_with_line_numbers}\n#{"-" * 80}\n#{ex.to_s(generated_source)}\n#{"=" * 80}"
++      end
++
++      generated_nodes = @program.normalize(generated_nodes)
++
++      type_visitor = TypeVisitor.new(@program, vars, target_def)
++      type_visitor.scope = owner
++      generated_nodes.accept type_visitor
++
++      if generated_nodes.type != target_def.type
++        target_def.raise "expected '#{target_def.name}' to return #{target_def.type}, not #{generated_nodes.type}"
++      end
++
++      target_def.body = generated_nodes
++    end
++  end
++
+   class MacroExpander
+     def initialize(@mod)
+     end
+ 
+-    def expand(a_macro, call)
+-      visitor = MacroVisitor.new @mod, a_macro, call
++    def expand(scope : Type, a_macro, call)
++      visitor = MacroVisitor.new @mod, scope, a_macro, call
+       a_macro.body.accept visitor
+       visitor.to_s
+     end
+ 
+-    def expand(node)
+-      visitor = MacroVisitor.new @mod
++    def expand(scope : Type, node)
++      visitor = MacroVisitor.new @mod, scope
+       node.accept visitor
+       visitor.to_s
+     end
+@@ -18,16 +68,16 @@ module Crystal
+     class MacroVisitor < Visitor
+       getter last
+ 
+-      def self.new(mod, a_macro, call)
++      def self.new(mod, scope, a_macro, call)
+         vars = {} of String => ASTNode
+         a_macro.args.zip(call.args) do |macro_arg, call_arg|
+           vars[macro_arg.name] = call_arg.to_macro_var
+         end
+ 
+-        new(mod, vars)
++        new(mod, scope, vars)
+       end
+ 
+-      def initialize(@mod, @vars = {} of String => ASTNode)
++      def initialize(@mod, @scope, @vars = {} of String => ASTNode)
+         @str = StringBuilder.new
+         @last = Nop.new
+       end
+@@ -197,6 +247,33 @@ module Crystal
+         end
+       end
+ 
++      def visit(node : InstanceVar)
++        case node.name
++        when "@name"
++          @last = StringLiteral.new(@scope.to_s)
++        when "@instance_vars"
++          scope = @scope
++          unless scope.is_a?(InstanceVarContainer)
++            node.raise "#{scope} can't have instance vars"
++          end
++
++          all_ivars = scope.all_instance_vars
++
++          ivars = Array(ASTNode).new(all_ivars.length)
++          all_ivars.each do |name, ivar|
++            ivars.push MetaVar.new(name, ivar.type)
++          end
++
++          @last = ArrayLiteral.new(ivars)
++        else
++          node.raise "unknown macro instance var: '#{node.name}'"
++        end
++      end
++
++      def visit(node : MetaVar)
++        @last = node
++      end
++
+       def visit(node : BoolLiteral)
+         @last = node
+       end
+@@ -274,16 +351,7 @@ module Crystal
+           raise "wrong number of arguments for stringify (#{args.length} for 0)"
+         end
+ 
+-        me = self
+-
+-        case me
+-        when StringLiteral
+-          StringLiteral.new("\"#{me.value.dump}\"")
+-        when SymbolLiteral
+-          StringLiteral.new("\":#{me.value.dump}\"")
+-        else
+-          StringLiteral.new(to_s)
+-        end
++        stringify
+       when "=="
+         BoolLiteral.new(self == args.first)
+       when "!="
+@@ -308,6 +376,10 @@ module Crystal
+         raise "wrong number of arguments for #{method} (#{args.length} for #{length})"
+       end
+     end
++
++    def stringify
++      StringLiteral.new(to_macro_id)
++    end
+   end
+ 
+   class NilLiteral
+@@ -364,6 +436,10 @@ module Crystal
+       @value
+     end
+ 
++    def stringify
++      StringLiteral.new("\"#{@value.dump}\"")
++    end
++
+     def interpret(method, args, block, interpreter)
+       case method
+       when "downcase"
+@@ -431,10 +507,14 @@ module Crystal
+         end
+       when "empty?"
+         interpret_argless_method(method, args) { BoolLiteral.new(elements.empty?) }
++      when "first"
++        interpret_argless_method(method, args) { elements.first? || NilLiteral.new }
+       when "join"
+         interpret_one_arg_method(method, args) do |arg|
+           StringLiteral.new(elements.map(&.to_macro_id).join arg.to_macro_id)
+         end
++      when "last"
++        interpret_argless_method(method, args) { elements.last? || NilLiteral.new }
+       when "length"
+         interpret_argless_method(method, args) { NumberLiteral.new(elements.length, :i32) }
+       when "map"
+@@ -543,10 +623,24 @@ module Crystal
+     end
+   end
+ 
++  class MetaVar
++    def to_macro_id
++      @name
++    end
++
++    def stringify
++      StringLiteral.new("\"#{@name}\"")
++    end
++  end
++
+   class SymbolLiteral
+     def to_macro_id
+       @value
+     end
++
++    def stringify
++      StringLiteral.new("\":#{@value.dump}\"")
++    end
+   end
+ 
+   class Var
+diff --git a/src/compiler/crystal/primitives.cr b/src/compiler/crystal/primitives.cr
+index 808320a25..bc046dda3 100644
+--- a/src/compiler/crystal/primitives.cr
++++ b/src/compiler/crystal/primitives.cr
+@@ -71,9 +71,7 @@ module Crystal
+     end
+ 
+     def define_struct_primitives
+-      self.struct.add_def Def.new("hash", ([] of Arg), Primitive.new(:struct_hash))
+       self.struct.add_def Def.new("==", [Arg.new_with_restriction("other", Self.new)], Primitive.new(:struct_equals))
+-      self.struct.add_def Def.new("to_s", ([] of Arg), Primitive.new(:struct_to_s))
+     end
+ 
+     def define_pointer_primitives
+diff --git a/src/compiler/crystal/program.cr b/src/compiler/crystal/program.cr
+index c134b5ef1..d864bb124 100644
+--- a/src/compiler/crystal/program.cr
++++ b/src/compiler/crystal/program.cr
+@@ -108,6 +108,7 @@ module Crystal
+       @vars = MetaVars.new
+       @literal_expander = LiteralExpander.new self
+       @macro_expander = MacroExpander.new self
++      @def_macros = [] of Def
+ 
+       define_primitives
+     end
+@@ -136,12 +137,16 @@ module Crystal
+       flags
+     end
+ 
+-    def expand_macro(a_macro, call)
+-      @macro_expander.expand a_macro, call
++    def push_def_macro(def)
++      @def_macros << def
+     end
+ 
+-    def expand_macro(node)
+-      @macro_expander.expand node
++    def expand_macro(scope : Type, a_macro, call)
++      @macro_expander.expand scope, a_macro, call
++    end
++
++    def expand_macro(scope : Type, node)
++      @macro_expander.expand scope, node
+     end
+ 
+     class PopenCommand < File
+diff --git a/src/compiler/crystal/type_inference.cr b/src/compiler/crystal/type_inference.cr
+index ec6b87084..ba3bdef29 100644
+--- a/src/compiler/crystal/type_inference.cr
++++ b/src/compiler/crystal/type_inference.cr
+@@ -7,6 +7,7 @@ module Crystal
+   class Program
+     def infer_type(node)
+       node.accept TypeVisitor.new(self)
++      expand_def_macros
+       fix_empty_types node
+       after_type_inference node
+     end
+@@ -691,7 +692,7 @@ module Crystal
+       return false unless the_macro
+ 
+       generated_nodes = expand_macro(the_macro, node) do
+-        @mod.expand_macro the_macro, node
++        @mod.expand_macro (@scope || @mod), the_macro, node
+       end
+ 
+       node.target_macro = generated_nodes
+@@ -717,7 +718,7 @@ module Crystal
+       the_macro.location = node.location
+ 
+       generated_nodes = expand_macro(the_macro, node) do
+-        @mod.expand_macro node
++        @mod.expand_macro (@scope || @mod), node
+       end
+ 
+       node.expanded = generated_nodes
+@@ -738,7 +739,7 @@ module Crystal
+         parser.filename = VirtualFile.new(the_macro, generated_source)
+         generated_nodes = parser.parse
+       rescue ex : Crystal::SyntaxException
+-        node.raise "macro didn't expand to a valid program, it expanded to:\n\n#{"=" * 80}\n#{"-" * 80}\n#{number_lines generated_source}\n#{"-" * 80}\n#{ex.to_s(generated_source)}\n#{"=" * 80}"
++        node.raise "macro didn't expand to a valid program, it expanded to:\n\n#{"=" * 80}\n#{"-" * 80}\n#{generated_source.lines.to_s_with_line_numbers}\n#{"-" * 80}\n#{ex.to_s(generated_source)}\n#{"=" * 80}"
+       end
+ 
+       generated_nodes = mod.normalize(generated_nodes)
+@@ -746,16 +747,12 @@ module Crystal
+       begin
+         generated_nodes.accept self
+       rescue ex : Crystal::Exception
+-        node.raise "macro didn't expand to a valid program, it expanded to:\n\n#{"=" * 80}\n#{"-" * 80}\n#{number_lines generated_source}\n#{"-" * 80}\n#{ex.to_s(generated_source)}\n#{"=" * 80}"
++        node.raise "macro didn't expand to a valid program, it expanded to:\n\n#{"=" * 80}\n#{"-" * 80}\n#{generated_source.lines.to_s_with_line_numbers}\n#{"-" * 80}\n#{ex.to_s(generated_source)}\n#{"=" * 80}"
+       end
+ 
+       generated_nodes
+     end
+ 
+-    def number_lines(source)
+-      source.lines.to_s_with_line_numbers
+-    end
+-
+     def visit(node : Return)
+       node.raise "can't return from top level" unless @typed_def
+ 
+@@ -1489,12 +1486,8 @@ module Crystal
+         node.type = mod.int32
+       when :symbol_to_s
+         node.type = mod.string
+-      when :struct_hash
+-        node.type = mod.int32
+       when :struct_equals
+         node.type = mod.bool
+-      when :struct_to_s
+-        node.type = mod.string
+       when :class
+         node.type = scope.metaclass
+       when :fun_call
+diff --git a/src/compiler/crystal/type_inference/after_type_inference_transformer.cr b/src/compiler/crystal/type_inference/after_type_inference_transformer.cr
+index e7a37260d..2a7e8c484 100644
+--- a/src/compiler/crystal/type_inference/after_type_inference_transformer.cr
++++ b/src/compiler/crystal/type_inference/after_type_inference_transformer.cr
+@@ -179,11 +179,7 @@ module Crystal
+               @transformed.add(target_def.object_id)
+ 
+               node.bubbling_exception do
+-                if return_type = target_def.return_type
+-                  expand_def_macro target_def, target_def.type
+-                else
+-                  target_def.body = target_def.body.transform(self)
+-                end
++                target_def.body = target_def.body.transform(self)
+               end
+             end
+           else
+@@ -214,48 +210,6 @@ module Crystal
+       node
+     end
+ 
+-    def expand_def_macro(target_def, return_type)
+-      the_macro = Macro.new("macro_#{target_def.object_id}", [] of Arg, target_def.body)
+-      the_macro.location = target_def.location
+-
+-      begin
+-        generated_source = @program.expand_macro target_def.body
+-      rescue ex : Crystal::Exception
+-        target_def.raise "expanding macro", ex
+-      end
+-
+-      vars = MetaVars.new
+-      target_def.args.each do |arg|
+-        vars[arg.name] = MetaVar.new(arg.name, arg.type)
+-      end
+-      target_def.vars = vars
+-
+-      begin
+-        arg_names = target_def.args.map(&.name)
+-
+-        parser = Parser.new(generated_source, [Set.new(arg_names)])
+-        parser.filename = VirtualFile.new(the_macro, generated_source)
+-        generated_nodes = parser.parse
+-      rescue ex : Crystal::SyntaxException
+-        target_def.raise "def macro didn't expand to a valid program, it expanded to:\n\n#{"=" * 80}\n#{"-" * 80}\n#{number_lines generated_source}\n#{"-" * 80}\n#{ex.to_s(generated_source)}\n#{"=" * 80}"
+-      end
+-
+-      generated_nodes = @program.normalize(generated_nodes)
+-
+-      type_visitor = TypeVisitor.new(@program, vars, target_def)
+-      type_visitor.scope = target_def.owner
+-      generated_nodes.accept type_visitor
+-
+-      @program.fix_empty_types generated_nodes
+-      generated_nodes = generated_nodes.transform(self)
+-
+-      if generated_nodes.type != return_type
+-        target_def.raise "expected '#{target_def.name}' to return #{return_type}, not #{generated_nodes.type}"
+-      end
+-
+-      target_def.body = generated_nodes
+-    end
+-
+     def number_lines(source)
+       source.lines.to_s_with_line_numbers
+     end
+diff --git a/src/compiler/crystal/type_inference/ast.cr b/src/compiler/crystal/type_inference/ast.cr
+index 02f80d9f4..e30aae8d0 100644
+--- a/src/compiler/crystal/type_inference/ast.cr
++++ b/src/compiler/crystal/type_inference/ast.cr
+@@ -229,6 +229,13 @@ module Crystal
+     property :self_closured
+     @self_closured = false
+ 
++    def macro_owner=(@macro_owner)
++    end
++
++    def macro_owner
++      @macro_owner || @owner
++    end
++
+     def has_default_arguments?
+       args.length > 0 && args.last.default_value
+     end
+diff --git a/src/compiler/crystal/type_inference/call.cr b/src/compiler/crystal/type_inference/call.cr
+index b74e2eaf2..264e7cd0b 100644
+--- a/src/compiler/crystal/type_inference/call.cr
++++ b/src/compiler/crystal/type_inference/call.cr
+@@ -153,7 +153,8 @@ module Crystal
+           typed_def, typed_def_args = prepare_typed_def_with_args(match.def, match_owner, lookup_self_type, match.arg_types)
+           match_owner.add_def_instance(match.def.object_id, lookup_arg_types, block_type, typed_def) if use_cache
+           if return_type = typed_def.return_type
+-            typed_def.type = TypeLookup.lookup(match_owner, return_type)
++            typed_def.type = TypeLookup.lookup(match.def.macro_owner.not_nil!, return_type)
++            mod.push_def_macro typed_def
+           else
+             bubbling_exception do
+               visitor = TypeVisitor.new(mod, typed_def_args, typed_def)
+diff --git a/src/compiler/crystal/types.cr b/src/compiler/crystal/types.cr
+index ef87cd15f..2800d7d43 100644
+--- a/src/compiler/crystal/types.cr
++++ b/src/compiler/crystal/types.cr
+@@ -790,6 +790,7 @@ module Crystal
+       super(program, container, name)
+       if superclass
+         @depth = superclass.depth + 1
++        copy_def_macros superclass
+       else
+         @depth = 0
+       end
+@@ -806,6 +807,18 @@ module Crystal
+       @superclass.try &.add_subclass(self)
+     end
+ 
++    def copy_def_macros(superclass)
++      superclass.defs.try &.each do |name, hash|
++        hash.each do |def_key, def|
++          if def.return_type
++            cloned_def = def.clone
++            cloned_def.macro_owner = def.macro_owner
++            add_def cloned_def
++          end
++        end
++      end
++    end
++
+     def all_subclasses
+       subclasses = [] of Type
+       append_subclasses(self, subclasses)
