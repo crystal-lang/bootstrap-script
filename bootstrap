@@ -679,6 +679,7 @@ test -f "$stages"/47-crystal || (
     cd crystal
 
     patch -p1 < "$files"/stage47.patch
+    # TODO: build clang for LLVM and remove --release
     "$stages"/46-crystal --stats --release --llc '-relocation-model=pic' -o "$stages"/47-crystal src/compiler/crystal.cr
 )
 
