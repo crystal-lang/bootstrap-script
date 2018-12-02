@@ -914,3 +914,14 @@ test -f "$stages"/67-0.3.4-crystal || (
 
     "$stages"/66-0.3.3-crystal --stats --llc '-relocation-model=pic' -o "$stages"/67-0.3.4-crystal src/compiler/crystal.cr
 )
+
+echo "==> Bootstrapping Crystal (68/$crystal_stages)"
+test -f "$stages"/68-crystal || (
+    cd "$src"
+
+    clone-crystal-at f4b8600835f76727467f9b649c192f1609a61fcd
+
+    cd crystal
+
+    "$stages"/67-0.3.4-crystal --stats --llc '-relocation-model=pic' -o "$stages"/68-crystal src/compiler/crystal.cr
+)
