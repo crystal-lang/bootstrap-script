@@ -1032,3 +1032,15 @@ test -f "$stages"/76-0.5.0-crystal || (
     sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr
     "$stages"/75-0.4.5-crystal --stats -o "$stages"/76-0.5.0-crystal src/compiler/crystal.cr
 )
+
+echo "==> Bootstrapping Crystal 0.5.1 (77/$crystal_stages)"
+test -f "$stages"/77-0.5.1-crystal || (
+    cd "$src"
+
+    clone-crystal-at 0.5.1
+
+    cd crystal
+
+    sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr
+    "$stages"/76-0.5.0-crystal --stats -o "$stages"/77-0.5.1-crystal src/compiler/crystal.cr
+)
