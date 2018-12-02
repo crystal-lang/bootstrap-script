@@ -680,7 +680,10 @@ test -f "$stages"/47-crystal || (
 
     patch -p1 < "$files"/stage47.patch
     # TODO: build clang for LLVM and remove --release
-    "$stages"/46-crystal --stats --release --llc '-relocation-model=pic' -o "$stages"/47-crystal src/compiler/crystal.cr
+    # This step fails intermittently, try three times
+    "$stages"/46-crystal --stats --release --llc '-relocation-model=pic' -o "$stages"/47-crystal src/compiler/crystal.cr ||
+        "$stages"/46-crystal --stats --release --llc '-relocation-model=pic' -o "$stages"/47-crystal src/compiler/crystal.cr ||
+        "$stages"/46-crystal --stats --release --llc '-relocation-model=pic' -o "$stages"/47-crystal src/compiler/crystal.cr
 )
 
 echo "==> Bootstrapping Crystal (48/$crystal_stages)"
