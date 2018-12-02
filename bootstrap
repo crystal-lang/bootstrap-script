@@ -792,3 +792,16 @@ test -f "$stages"/57-0.1.0-crystal || (
 
     "$stages"/56-crystal --stats --llc '-relocation-model=pic' -o "$stages"/57-0.1.0-crystal src/compiler/crystal.cr
 )
+
+echo "==> Bootstrapping Crystal (58/$crystal_stages)"
+test -f "$stages"/58-crystal || (
+    cd "$src"
+
+    clone-crystal-at bafc4722d67f3db25434d8ad1f8cf0fb9068ca93
+
+    cd crystal
+
+    # Fix check for clang/gcc was accidentally removed in some previous commit
+    git cherry-pick -n b04d62623ff9791db57c3bcd59d1e4cb284b8271
+    "$stages"/57-0.1.0-crystal --stats --llc '-relocation-model=pic' -o "$stages"/58-crystal src/compiler/crystal.cr
+)
