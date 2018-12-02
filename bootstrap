@@ -27,6 +27,7 @@ echo "==> Checking files"
     sha256sum -c "$files"/openssl-1.0.2q.tar.gz.sha256
     sha256sum -c "$files"/ruby-1.9.3-p551.tar.gz.sha256
     sha256sum -c "$files"/llvm-3.3.src.tar.gz.sha256
+    sha256sum -c "$files"/llvm-3.5.2.src.tar.xz.sha256
 
     cd "$downloads"/gems
 
@@ -992,4 +993,18 @@ test -f "$stages"/74-0.4.4-crystal || (
 
     sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr
     "$stages"/73-0.4.3-crystal --stats --llc '-relocation-model=pic' -o "$stages"/74-0.4.4-crystal src/compiler/crystal.cr
+)
+
+echo "==> Installing LLVM 3.5.2"
+test -d "$src"/llvm-3.5.2.src || (
+    cd "$src"
+
+    rm -Rf llvm-3.5.2.src
+    tar xJf "$downloads"/llvm-3.5.2.src.tar.xz
+
+    cd llvm-3.5.2.src
+
+    CC=gcc CXX=g++ ./configure --prefix="$buildroot" --enable-shared --with-python="$(command -v python2)"
+    make "-j$(nproc --all)"
+    make install
 )
