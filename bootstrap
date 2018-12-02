@@ -969,3 +969,15 @@ test -f "$stages"/72-0.4.2-crystal || (
 
     "$stages"/71-0.4.1-crystal --stats --llc '-relocation-model=pic' -o "$stages"/72-0.4.2-crystal src/compiler/crystal.cr
 )
+
+echo "==> Bootstrapping Crystal 0.4.3 (73/$crystal_stages)"
+test -f "$stages"/73-0.4.3-crystal || (
+    cd "$src"
+
+    clone-crystal-at 0.4.3
+
+    cd crystal
+
+    # Generates a lot of warnings about overriding the target triple, so we silence stderr
+    "$stages"/72-0.4.2-crystal --stats --llc '-relocation-model=pic' -o "$stages"/73-0.4.3-crystal src/compiler/crystal.cr 2>/dev/null
+)
