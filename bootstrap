@@ -103,28 +103,28 @@ test -d "$src"/ruby-prof || (
 cd "$src"
 
 test -f "$src"/gems-installed || (
-    gem install --no-rdoc --no-ri "$downloads"/gems/bundler-1.17.1.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/mime-types-1.25.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/rest-client-1.6.7.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/tins-0.9.0.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/term-ansicolor-1.2.2.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/multi_json-1.8.0.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/thor-0.18.1.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/simplecov-html-0.7.1.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/simplecov-0.7.1.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/coveralls-0.7.0.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/diff-lcs-1.2.4.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/ffi-1.9.0.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/json-1.7.7.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/levenshtein-ffi-1.0.2.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/rake-0.9.6.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/rspec-core-2.14.5.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/rspec-expectations-2.14.2.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/rspec-mocks-2.14.3.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/rspec-2.14.1.gem
-    gem install --no-rdoc --no-ri "$downloads"/gems/ruby-graphviz-1.0.9.gem
-    gem install --no-rdoc --no-ri "$src"/ruby-llvm/ruby-llvm-3.3.0.alpha.gem
-    gem install --no-rdoc --no-ri "$src"/ruby-prof/ruby-prof-0.13.0.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/bundler-1.17.1.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/mime-types-1.25.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/rest-client-1.6.7.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/tins-0.9.0.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/term-ansicolor-1.2.2.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/multi_json-1.8.0.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/thor-0.18.1.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/simplecov-html-0.7.1.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/simplecov-0.7.1.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/coveralls-0.7.0.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/diff-lcs-1.2.4.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/ffi-1.9.0.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/json-1.7.7.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/levenshtein-ffi-1.0.2.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/rake-0.9.6.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/rspec-core-2.14.5.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/rspec-expectations-2.14.2.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/rspec-mocks-2.14.3.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/rspec-2.14.1.gem
+    gem install --no-rdoc --no-ri --local "$downloads"/gems/ruby-graphviz-1.0.9.gem
+    gem install --no-rdoc --no-ri --local "$src"/ruby-llvm/ruby-llvm-3.3.0.alpha.gem
+    gem install --no-rdoc --no-ri --local "$src"/ruby-prof/ruby-prof-0.13.0.gem
 
     touch "$src"/gems-installed
 )
