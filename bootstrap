@@ -805,3 +805,16 @@ test -f "$stages"/58-crystal || (
     git cherry-pick -n b04d62623ff9791db57c3bcd59d1e4cb284b8271
     "$stages"/57-0.1.0-crystal --stats --llc '-relocation-model=pic' -o "$stages"/58-crystal src/compiler/crystal.cr
 )
+
+echo "==> Bootstrapping Crystal 0.2.0 (59/$crystal_stages)"
+test -f "$stages"/59-0.2.0-crystal || (
+    cd "$src"
+
+    clone-crystal-at 0.2.0
+
+    cd crystal
+
+    # Fix check for clang/gcc was accidentally removed in some previous commit
+    git cherry-pick -n b04d62623ff9791db57c3bcd59d1e4cb284b8271
+    "$stages"/58-crystal --stats --llc '-relocation-model=pic' -o "$stages"/59-0.2.0-crystal src/compiler/crystal.cr
+)
