@@ -72,7 +72,7 @@ test -d "$src"/llvm-3.3.src || (
 
     cd llvm-3.3.src
 
-    CC=gcc CXX=g++ ./configure --prefix="$buildroot" --enable-shared --disable-assertions --with-python="$(command -v python2)"
+    CC=gcc CXX=g++ ./configure --prefix="$buildroot" --enable-shared --with-python="$(command -v python2)"
     make "-j$(nproc --all)"
     make install
     ln -sf "$buildroot"/bin/llvm-config "$buildroot"/bin/llvm-config-3.3
