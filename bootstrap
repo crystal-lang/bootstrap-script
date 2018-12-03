@@ -14,7 +14,8 @@ crystal_stages="01"
 
 export PATH="$buildroot/bin:$PATH"
 export PKG_CONFIG_PATH="$buildroot/lib/pkgconfig"
-export LD_LIBRARY_PATH="$buildroot/lib:$buildroot/llvm33/lib:$buildroot/llvm35/lib"
+export LIBRARY_PATH="$buildroot/lib:$buildroot/llvm33/lib:$buildroot/llvm35/lib"
+export LD_LIBRARY_PATH="$LIBRARY_PATH"
 export GEM_HOME="$buildroot"/lib/ruby/gems/1.9.1
 
 test -d "$downloads" || (echo "downloads directory doesn't exist" && exit 1)
