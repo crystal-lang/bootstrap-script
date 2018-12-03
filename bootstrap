@@ -14,7 +14,7 @@ crystal_stages="01"
 
 export PATH="$buildroot/bin:$PATH"
 export PKG_CONFIG_PATH="$buildroot/lib/pkgconfig"
-export LD_LIBRARY_PATH="$buildroot/lib"
+export LD_LIBRARY_PATH="$buildroot/lib:$buildroot/llvm33/lib:$buildroot/llvm35/lib"
 export GEM_HOME="$buildroot"/lib/ruby/gems/1.9.1
 
 test -d "$downloads" || (echo "downloads directory doesn't exist" && exit 1)
@@ -73,11 +73,14 @@ test -d "$src"/llvm-3.3.src || (
 
     cd llvm-3.3.src
 
-    CC=gcc CXX=g++ ./configure --prefix="$buildroot" --enable-shared --with-python="$(command -v python2)"
+    CC=gcc CXX=g++ ./configure --prefix="$buildroot/llvm33" --enable-shared --with-python="$(command -v python2)"
     make "-j$(nproc --all)"
     make install
-    ln -sf "$buildroot"/bin/llvm-config "$buildroot"/bin/llvm-config-3.3
+
+    ln -s "$buildroot"/llvm33/bin/llvm-config "$buildroot"/bin/llvm-config-3.3
 )
+
+ln -sf "$buildroot"/bin/llvm-config-3.3 "$buildroot"/bin/llvm-config
 
 echo "==> Installing Gems"
 
@@ -1004,10 +1007,14 @@ test -d "$src"/llvm-3.5.2.src || (
 
     cd llvm-3.5.2.src
 
-    CC=gcc CXX=g++ ./configure --prefix="$buildroot" --enable-shared --with-python="$(command -v python2)"
+    CC=gcc CXX=g++ ./configure --prefix="$buildroot/llvm35" --enable-shared --with-python="$(command -v python2)"
     make "-j$(nproc --all)"
     make install
+
+    ln -s "$buildroot"/llvm35/bin/llvm-config "$buildroot"/bin/llvm-config-3.5
 )
+
+ln -sf "$buildroot"/bin/llvm-config-3.5 "$buildroot"/bin/llvm-config
 
 echo "==> Bootstrapping Crystal 0.4.5 (75/$crystal_stages)"
 test -f "$stages"/75-0.4.5-crystal || (
