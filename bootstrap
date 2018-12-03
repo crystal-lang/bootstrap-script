@@ -166,7 +166,8 @@ stage() {
 
         eval "$commands"
 
-        "$input" "${crystal_args[@]}" -o "$output" src/compiler/crystal.cr || exit
+        "$input" "${crystal_args[@]}" -o "$output" src/compiler/crystal.cr ||
+            "$input" "${crystal_args[@]}" -o "$output" src/compiler/crystal.cr || exit
     )
 }
 
