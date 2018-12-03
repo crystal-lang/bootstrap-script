@@ -29,6 +29,7 @@ echo "==> Checking files"
     sha256sum -c "$files"/ruby-1.9.3-p551.tar.gz.sha256
     sha256sum -c "$files"/llvm-3.3.src.tar.gz.sha256
     sha256sum -c "$files"/llvm-3.5.2.src.tar.xz.sha256
+    sha256sum -c "$files"/pcl-1.12.tar.gz.sha256
 
     cd "$downloads"/gems
 
@@ -336,3 +337,16 @@ stage 85 0.5.9 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' src/ll
 stage 86 0.5.10 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' src/llvm/target.cr"
 stage 87 0.6.0 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' src/llvm/target.cr"
 stage 88 0.6.1 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' src/llvm/target.cr"
+
+echo "==> Installing libpcl"
+test -d "$src"/pcl-1.12 || (
+    cd "$src"
+
+    tar xzf "$downloads"/pcl-1.12.tar.gz
+
+    cd pcl-1.12
+
+    ./configure --prefix="$buildroot"
+    make "-j$(nproc --all)"
+    make install
+)
