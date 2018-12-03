@@ -290,11 +290,8 @@ stage 68 f4b8600835f76727467f9b649c192f1609a61fcd
 stage 69 0.3.5
 stage 70 0.4.0
 stage 71 0.4.1
-stage 72 0.4.2
-
-# Generates a lot of warnings about overriding the target triple, so we silence stderr
-stage 73 0.4.3 # 2>/dev/null
-
+stage 72 0.4.2 'git revert -n 0e2e664a304027bb7d50835cb49ec09cb1307b4c'
+stage 73 0.4.3
 stage 74 0.4.4 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr"
 
 echo "==> Installing LLVM 3.5.2"
