@@ -320,3 +320,19 @@ stage 75 0.4.5 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/l
 stage 76 0.5.0 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr"
 stage 77 0.5.1 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr"
 stage 78 0.5.2 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr"
+
+crystal_args=(build --stats)
+
+stage 79 0.5.3 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr"
+stage 80 0.5.4 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr"
+
+export CRYSTAL_PATH="$src"/crystal/src
+
+stage 81 0.5.5 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' src/llvm/target.cr"
+stage 82 0.5.6 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' src/llvm/target.cr"
+stage 83 0.5.7 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' src/llvm/target.cr"
+stage 84 0.5.8 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' src/llvm/target.cr"
+stage 85 0.5.9 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' src/llvm/target.cr"
+stage 86 0.5.10 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' src/llvm/target.cr"
+stage 87 0.6.0 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' src/llvm/target.cr"
+stage 88 0.6.1 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' src/llvm/target.cr"
