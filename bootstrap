@@ -141,10 +141,38 @@ clone-crystal-at() {
     (cd "$src"/crystal; git checkout -q "$ref")
 }
 
+stage() {
+    local stage_num="$1"
+    local ref="$2"
+    local commands="${3:-}"
+
+    local input="$(find "$stages" -name "$(( "$stage_num" - 1))*crystal")"
+    if [[ "$ref" =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
+        local output="$stages/$stage_num-$ref-crystal"
+        local name="Crystal $ref"
+    else
+        local output="$stages/$stage_num-crystal"
+        local name="Crystal"
+    fi
+
+    echo "==> Bootstrapping $name ($(printf '%02d' "$stage_num")/$crystal_stages)"
+    test -f "$output" || (
+        cd "$src"
+
+        clone-crystal-at "$ref"
+
+        cd crystal
+
+        eval "$commands"
+
+        "$input" "${crystal_args[@]}" -o "$output" src/compiler/crystal.cr || exit
+    )
+}
+
 export CRYSTAL_PATH="$src"/crystal/src
 
 echo "==> Bootstrapping Crystal (01/$crystal_stages)"
-test -f "$stages"/01-crystal || (
+test -f "$stages"/1-crystal || (
     cd "$src"
 
     clone-crystal-at 04964442a2de0268f63c492b22b17cb502724fc7
@@ -153,850 +181,120 @@ test -f "$stages"/01-crystal || (
 
     patch -p1 < "$files"/stage1.patch
 
-    bin/crystal -stats bootstrap/crystal.cr
-    mv crystal "$stages"/01-crystal
+    LD_LIBRARY_PATH="$buildroot/lib:$buildroot/llvm33/lib" bin/crystal -stats bootstrap/crystal.cr
+    mv crystal "$stages"/1-crystal
 )
 
-echo "==> Bootstrapping Crystal (02/$crystal_stages)"
-test -f "$stages"/02-crystal || (
-    cd "$src"
-
-    clone-crystal-at bffda57eafff50a41e86618f7c2726803d31e42c
-
-    cd crystal
-
-    sed -i 's/`llvm-config --libs --ldflags`/LLVM-3.3/' src/compiler/crystal/llvm.cr
-
-    "$stages"/01-crystal -stats -o "$stages"/02-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (03/$crystal_stages)"
-test -f "$stages"/03-crystal || (
-    cd "$src"
-
-    clone-crystal-at 6657d3c84c93ec0c886aa9262b2a33791e22285f
-
-    cd crystal
-
-    patch -p1 < "$files"/stage3.patch
-    "$stages"/02-crystal -stats --llc '-relocation-model=pic' -o "$stages"/03-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (04/$crystal_stages)"
-test -f "$stages"/04-crystal || (
-    cd "$src"
-
-    clone-crystal-at 407e719ddb90d27e45a2e25e82f8a4653ae45beb
-
-    cd crystal
-
-    "$stages"/03-crystal -stats --llc '-relocation-model=pic' -o "$stages"/04-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (05/$crystal_stages)"
-test -f "$stages"/05-crystal || (
-    cd "$src"
-
-    clone-crystal-at 4d343928fda4d728294965af95febb38afd0d0ac
-
-    cd crystal
-
-    patch -p1 < "$files"/stage5.patch
-    "$stages"/04-crystal -stats --llc '-relocation-model=pic' -o "$stages"/05-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (06/$crystal_stages)"
-test -f "$stages"/06-crystal || (
-    cd "$src"
-
-    clone-crystal-at 72f260e00bf343d179dd2a72b5f6e699f9030739
-
-    cd crystal
-
-    "$stages"/05-crystal -stats --llc '-relocation-model=pic' -o "$stages"/06-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (07/$crystal_stages)"
-test -f "$stages"/07-crystal || (
-    cd "$src"
-
-    clone-crystal-at 90d7aad39c500fcbced6d5fba7f63098a0d24918
-
-    cd crystal
-
-    "$stages"/06-crystal -stats --llc '-relocation-model=pic' -o "$stages"/07-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (08/$crystal_stages)"
-test -f "$stages"/08-crystal || (
-    cd "$src"
-
-    clone-crystal-at 570be14b8bd422ebf68f2b4c65de8431d23014e1
-
-    cd crystal
-
-    "$stages"/07-crystal -stats --llc '-relocation-model=pic' -o "$stages"/08-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (09/$crystal_stages)"
-test -f "$stages"/09-crystal || (
-    cd "$src"
-
-    clone-crystal-at 6f084f00e416045a6a5de16e8a0637831e041f22
-
-    cd crystal
-
-    # addressof was renamed to pointerof in a sinle commit. This patch is just the compiler changes.
-    patch -p1 < "$files"/stage9.patch
-    "$stages"/08-crystal -stats --llc '-relocation-model=pic' -o "$stages"/09-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (10/$crystal_stages)"
-test -f "$stages"/10-crystal || (
-    cd "$src"
-
-    clone-crystal-at b2cdfe57ef177f3362a977ebd80fb3eed692b465
-
-    cd crystal
-
-    "$stages"/09-crystal -stats --llc '-relocation-model=pic' -o "$stages"/10-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (11/$crystal_stages)"
-test -f "$stages"/11-crystal || (
-    cd "$src"
-
-    clone-crystal-at 4ceda49393a5cd6063fcacc97acb6a5d19e5b0a2
-
-    cd crystal
-
-    patch -p1 < "$files"/stage11.patch
-    "$stages"/10-crystal -stats --llc '-relocation-model=pic' -o "$stages"/11-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (12/$crystal_stages)"
-test -f "$stages"/12-crystal || (
-    cd "$src"
-
-    clone-crystal-at 9af98fc4d4f75938b4e4989afa50a388c8219a60
-
-    cd crystal
-
-    "$stages"/11-crystal -stats --llc '-relocation-model=pic' -o "$stages"/12-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (13/$crystal_stages)"
-test -f "$stages"/13-crystal || (
-    cd "$src"
-
-    clone-crystal-at 55dae4faa3e2591d384da3acb368c8dbe10fa1aa
-
-    cd crystal
-
-    "$stages"/12-crystal -stats --llc '-relocation-model=pic' -o "$stages"/13-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (14/$crystal_stages)"
-test -f "$stages"/14-crystal || (
-    cd "$src"
-
-    clone-crystal-at b3954fd743dfecec4e28cdf04c8575319fadd9fa
-
-    cd crystal
-
-    "$stages"/13-crystal -stats --llc '-relocation-model=pic' -o "$stages"/14-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (15/$crystal_stages)"
-test -f "$stages"/15-crystal || (
-    cd "$src"
-
-    clone-crystal-at d6a5ad0d26811d977ac46ca468123f7f8f5bdddf
-
-    cd crystal
-
-    "$stages"/14-crystal -stats --llc '-relocation-model=pic' -o "$stages"/15-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (16/$crystal_stages)"
-test -f "$stages"/16-crystal || (
-    cd "$src"
-
-    clone-crystal-at 12d3afc73ab370dff7b01a4181cd0e351914e4fa
-
-    cd crystal
-
-    patch -p1 < "$files"/stage16.patch
-    "$stages"/15-crystal -stats --llc '-relocation-model=pic' -o "$stages"/16-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (17/$crystal_stages)"
-test -f "$stages"/17-crystal || (
-    cd "$src"
-
-    clone-crystal-at 7b3172b28ec78dfef4f459399e8cfe30e84dfb22
-
-    cd crystal
-
-    # This patch is a combination of the compiler half of commit 55f369935a9201bbb47cfae431358137f0e08340
-    # and a cherry-pick of 9885f81cc5507f6589486142664abbb2959e2252. That latter commit avoids any JIT issues
-    # when changing the in-memory format of crystal objects by not JITing anything.
-    patch -p1 < "$files"/stage17.patch
-    "$stages"/16-crystal -stats --llc '-relocation-model=pic' -o "$stages"/17-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (18/$crystal_stages)"
-test -f "$stages"/18-crystal || (
-    cd "$src"
-
-    clone-crystal-at c1b24dde5ac2b8e893018eafb681f47f9a04c414
-
-    cd crystal
-
-    patch -p1 < "$files"/stage18.patch
-    "$stages"/17-crystal -stats --llc '-relocation-model=pic' -o "$stages"/18-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (19/$crystal_stages)"
-test -f "$stages"/19-crystal || (
-    cd "$src"
-
-    clone-crystal-at 4d64dc843bff941c3ab3805011164d79afa83d61
-
-    cd crystal
-
-    patch -p1 < "$files"/stage19.patch
-    "$stages"/18-crystal -stats --llc '-relocation-model=pic' -o "$stages"/19-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (20/$crystal_stages)"
-test -f "$stages"/20-crystal || (
-    cd "$src"
-
-    clone-crystal-at 2a462911c231480d919a37ef3bc03a5941e3e51b
-
-    cd crystal
-
-    "$stages"/19-crystal -stats --llc '-relocation-model=pic' -o "$stages"/20-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (21/$crystal_stages)"
-test -f "$stages"/21-crystal || (
-    cd "$src"
-
-    clone-crystal-at bd69c9bc9abd9295b17fe3a0e46dc826e08bdca9
-
-    cd crystal
-
-    "$stages"/20-crystal -stats --llc '-relocation-model=pic' -o "$stages"/21-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (22/$crystal_stages)"
-test -f "$stages"/22-crystal || (
-    cd "$src"
-
-    clone-crystal-at 107f1a8948e1c0b0fe39fd151f105e4e39cf0439
-
-    cd crystal
-
-    "$stages"/21-crystal -stats --llc '-relocation-model=pic' -o "$stages"/22-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (23/$crystal_stages)"
-test -f "$stages"/23-crystal || (
-    cd "$src"
-
-    clone-crystal-at d1e4943a46ffc6efaf3bc2f9e4c92f27de54b12d
-
-    cd crystal
-
-    "$stages"/22-crystal -stats --llc '-relocation-model=pic' -o "$stages"/23-crystal src/compiler/crystal.cr
-)
+crystal_args=(-stats)
+
+stage 2 bffda57eafff50a41e86618f7c2726803d31e42c "sed -i 's/\`llvm-config --libs --ldflags\`/LLVM-3.3/' src/compiler/crystal/llvm.cr"
+
+crystal_args=(-stats --llc '-relocation-model=pic')
+
+stage 3 6657d3c84c93ec0c886aa9262b2a33791e22285f 'patch -p1 < "$files"/stage3.patch'
+stage 4 407e719ddb90d27e45a2e25e82f8a4653ae45beb
+stage 5 4d343928fda4d728294965af95febb38afd0d0ac 'patch -p1 < "$files"/stage5.patch'
+stage 6 72f260e00bf343d179dd2a72b5f6e699f9030739
+stage 7 90d7aad39c500fcbced6d5fba7f63098a0d24918
+stage 8 570be14b8bd422ebf68f2b4c65de8431d23014e1
+
+# addressof was renamed to pointerof in a sinle commit. This patch is just the compiler changes.
+stage 9 6f084f00e416045a6a5de16e8a0637831e041f22 'patch -p1 < "$files"/stage9.patch'
+
+stage 10 b2cdfe57ef177f3362a977ebd80fb3eed692b465
+stage 11 4ceda49393a5cd6063fcacc97acb6a5d19e5b0a2 'patch -p1 < "$files"/stage11.patch'
+stage 12 9af98fc4d4f75938b4e4989afa50a388c8219a60
+stage 13 55dae4faa3e2591d384da3acb368c8dbe10fa1aa
+stage 14 b3954fd743dfecec4e28cdf04c8575319fadd9fa
+stage 15 d6a5ad0d26811d977ac46ca468123f7f8f5bdddf
+stage 16 12d3afc73ab370dff7b01a4181cd0e351914e4fa 'patch -p1 < "$files"/stage16.patch'
+
+# This patch is a combination of the compiler half of commit 55f369935a9201bbb47cfae431358137f0e08340
+# and a cherry-pick of 9885f81cc5507f6589486142664abbb2959e2252. That latter commit avoids any JIT issues
+# when changing the in-memory format of crystal objects by not JITing anything.
+stage 17 7b3172b28ec78dfef4f459399e8cfe30e84dfb22 'patch -p1 < "$files"/stage17.patch'
+
+stage 18 c1b24dde5ac2b8e893018eafb681f47f9a04c414 'patch -p1 < "$files"/stage18.patch'
+stage 19 4d64dc843bff941c3ab3805011164d79afa83d61 'patch -p1 < "$files"/stage19.patch'
+stage 20 2a462911c231480d919a37ef3bc03a5941e3e51b
+stage 21 bd69c9bc9abd9295b17fe3a0e46dc826e08bdca9
+stage 22 107f1a8948e1c0b0fe39fd151f105e4e39cf0439
+stage 23 d1e4943a46ffc6efaf3bc2f9e4c92f27de54b12d
 
 export CRYSTAL_PATH="$src"/crystal/src:libs
 
-echo "==> Bootstrapping Crystal (24/$crystal_stages)"
-test -f "$stages"/24-crystal || (
-    cd "$src"
-
-    clone-crystal-at 51bb8313ea45c1eed59151f34ac618ef2a930fe9
-
-    cd crystal
-
-    "$stages"/23-crystal -stats --llc '-relocation-model=pic' -o "$stages"/24-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (25/$crystal_stages)"
-test -f "$stages"/25-crystal || (
-    cd "$src"
-
-    clone-crystal-at c2d5bea9fa3d7779a35b8266d1e6be78bf627e76
-
-    cd crystal
-
-    patch -p1 < "$files"/stage25.patch
-    "$stages"/24-crystal -stats --llc '-relocation-model=pic' -o "$stages"/25-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (26/$crystal_stages)"
-test -f "$stages"/26-crystal || (
-    cd "$src"
-
-    clone-crystal-at 1f58dc82b733dc06e237ee2ed6b17cb07f196308
-
-    cd crystal
-
-    patch -p1 < "$files"/stage26.patch
-    "$stages"/25-crystal -stats --llc '-relocation-model=pic' -o "$stages"/26-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (27/$crystal_stages)"
-test -f "$stages"/27-crystal || (
-    cd "$src"
-
-    clone-crystal-at 25eb532631e3dbeaa778cd10f18e085e077cde72
-
-    cd crystal
-
-    patch -p1 < "$files"/stage27.patch
-    "$stages"/26-crystal -stats --llc '-relocation-model=pic' -o "$stages"/27-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (28/$crystal_stages)"
-test -f "$stages"/28-crystal || (
-    cd "$src"
-
-    clone-crystal-at dec595a2f21c91b5510aec1bed62011dbc76b4e8
-
-    cd crystal
-
-    "$stages"/27-crystal -stats --llc '-relocation-model=pic' -o "$stages"/28-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (29/$crystal_stages)"
-test -f "$stages"/29-crystal || (
-    cd "$src"
-
-    clone-crystal-at fbea5680d69dd4924bc769444614d17dd6953e97
-
-    cd crystal
-
-    "$stages"/28-crystal -stats --llc '-relocation-model=pic' -o "$stages"/29-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (30/$crystal_stages)"
-test -f "$stages"/30-crystal || (
-    cd "$src"
-
-    clone-crystal-at ba1613f26e261bf8a3c43c143bc7f4d8868146d0
-
-    cd crystal
-
-    git revert -n e5909ae322ecc292512c8d58decb4cd37c344fbd
-    "$stages"/29-crystal --stats --llc '-relocation-model=pic' -o "$stages"/30-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (31/$crystal_stages)"
-test -f "$stages"/31-crystal || (
-    cd "$src"
-
-    clone-crystal-at b50b0226d9b5f8c8688236e54104918bc06ea526
-
-    cd crystal
-
-    "$stages"/30-crystal --stats --llc '-relocation-model=pic' -o "$stages"/31-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (32/$crystal_stages)"
-test -f "$stages"/32-crystal || (
-    cd "$src"
-
-    clone-crystal-at 3abb79bb83468751bb4aec1541d49c9f9526a9a5
-
-    cd crystal
-
-    "$stages"/31-crystal --stats --llc '-relocation-model=pic' -o "$stages"/32-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (33/$crystal_stages)"
-test -f "$stages"/33-crystal || (
-    cd "$src"
-
-    clone-crystal-at b169aec39aff9b8dce35faf2af2fb4bd95866cf3
-
-    cd crystal
-
-    "$stages"/32-crystal --stats --llc '-relocation-model=pic' -o "$stages"/33-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (34/$crystal_stages)"
-test -f "$stages"/34-crystal || (
-    cd "$src"
-
-    clone-crystal-at e697ecd3e80957b89bfa98d8df41d0596ba5a3a0
-
-    cd crystal
-
-    "$stages"/33-crystal --stats --llc '-relocation-model=pic' -o "$stages"/34-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (35/$crystal_stages)"
-test -f "$stages"/35-crystal || (
-    cd "$src"
-
-    clone-crystal-at 698485e0351f3ee7f10f8d749d360a573241e034
-
-    cd crystal
-
-    patch -p1 < "$files"/stage35.patch
-    "$stages"/34-crystal --stats --llc '-relocation-model=pic' -o "$stages"/35-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (36/$crystal_stages)"
-test -f "$stages"/36-crystal || (
-    cd "$src"
-
-    clone-crystal-at dcecbe7a258a4e929541a17765ad984eb500ae73
-
-    cd crystal
-
-    "$stages"/35-crystal --stats --llc '-relocation-model=pic' -o "$stages"/36-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (37/$crystal_stages)"
-test -f "$stages"/37-crystal || (
-    cd "$src"
-
-    clone-crystal-at 89b1e67b74530bdd7f8c45914d131300c4b9998c
-
-    cd crystal
-
-    "$stages"/36-crystal --stats --llc '-relocation-model=pic' -o "$stages"/37-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (38/$crystal_stages)"
-test -f "$stages"/38-crystal || (
-    cd "$src"
-
-    clone-crystal-at fd022eb1391ed29f7c7fc9b21a3ebbc1a08eee96
-
-    cd crystal
-
-    "$stages"/37-crystal --stats --llc '-relocation-model=pic' -o "$stages"/38-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (39/$crystal_stages)"
-test -f "$stages"/39-crystal || (
-    cd "$src"
-
-    clone-crystal-at 834e29389eb0618a9fbc62cba0b1c9b4d00478b8
-
-    cd crystal
-
-    "$stages"/38-crystal --stats --llc '-relocation-model=pic' -o "$stages"/39-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (40/$crystal_stages)"
-test -f "$stages"/40-crystal || (
-    cd "$src"
-
-    clone-crystal-at 4aaae0d89e1d2c89b738956829ad5430a11dd8c0
-
-    cd crystal
-
-    "$stages"/39-crystal --stats --llc '-relocation-model=pic' -o "$stages"/40-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (41/$crystal_stages)"
-test -f "$stages"/41-crystal || (
-    cd "$src"
-
-    clone-crystal-at e60ee730726c488df85bf2cc6304f2ef82c5e9ac
-
-    cd crystal
-
-    "$stages"/40-crystal --stats --llc '-relocation-model=pic' -o "$stages"/41-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (42/$crystal_stages)"
-test -f "$stages"/42-crystal || (
-    cd "$src"
-
-    clone-crystal-at b8577f770904c97d651a86e892648fe9d3ec4bb7
-
-    cd crystal
-
-    "$stages"/41-crystal --stats --llc '-relocation-model=pic' -o "$stages"/42-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (43/$crystal_stages)"
-test -f "$stages"/43-crystal || (
-    cd "$src"
-
-    clone-crystal-at 0506317f71561c54d67db5119a5290cc39920d16
-
-    cd crystal
-
-    "$stages"/42-crystal --stats --llc '-relocation-model=pic' -o "$stages"/43-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (44/$crystal_stages)"
-test -f "$stages"/44-crystal || (
-    cd "$src"
-
-    clone-crystal-at 523ebc0f40b673f2f17a57a5783d74e868d9c785
-
-    cd crystal
-
-    "$stages"/43-crystal --stats --llc '-relocation-model=pic' -o "$stages"/44-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (45/$crystal_stages)"
-test -f "$stages"/45-crystal || (
-    cd "$src"
-
-    clone-crystal-at a89665b6c65e14c43a9ef19a38d1b12849bb56f6
-
-    cd crystal
-
-    "$stages"/44-crystal --stats --llc '-relocation-model=pic' -o "$stages"/45-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (46/$crystal_stages)"
-test -f "$stages"/46-crystal || (
-    cd "$src"
-
-    clone-crystal-at 68d154c82f0b5ef3e3fa29e0e9be25e033328530
-
-    cd crystal
-
-    patch -p1 < "$files"/stage46.patch
-    "$stages"/45-crystal --stats --llc '-relocation-model=pic' -o "$stages"/46-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (47/$crystal_stages)"
-test -f "$stages"/47-crystal || (
-    cd "$src"
-
-    clone-crystal-at f1d3a458b8f23cb1334e700ef224ee6b381b0e42
-
-    cd crystal
-
-    patch -p1 < "$files"/stage47.patch
-    # TODO: build clang for LLVM and remove --release
-    # This step fails intermittently, try three times
-    "$stages"/46-crystal --stats --release --llc '-relocation-model=pic' -o "$stages"/47-crystal src/compiler/crystal.cr ||
-        "$stages"/46-crystal --stats --release --llc '-relocation-model=pic' -o "$stages"/47-crystal src/compiler/crystal.cr ||
-        "$stages"/46-crystal --stats --release --llc '-relocation-model=pic' -o "$stages"/47-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (48/$crystal_stages)"
-test -f "$stages"/48-crystal || (
-    cd "$src"
-
-    clone-crystal-at 7689dfa91c41e9aa54110c1d701816eea2dca721
-
-    cd crystal
-
-    "$stages"/47-crystal --stats --release --llc '-relocation-model=pic' -o "$stages"/48-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (49/$crystal_stages)"
-test -f "$stages"/49-crystal || (
-    cd "$src"
-
-    clone-crystal-at 4fb32b775bf5f71abf46b6efe936c019aab100b4
-
-    cd crystal
-
-    "$stages"/48-crystal --stats --release --llc '-relocation-model=pic' -o "$stages"/49-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (50/$crystal_stages)"
-test -f "$stages"/50-crystal || (
-    cd "$src"
-
-    clone-crystal-at 4948b8f2517e5d19c583181f4c9b561a99b568dd
-
-    cd crystal
-
-    "$stages"/49-crystal --stats --release --llc '-relocation-model=pic' -o "$stages"/50-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (51/$crystal_stages)"
-test -f "$stages"/51-crystal || (
-    cd "$src"
-
-    clone-crystal-at 8a7bf7dddfe55b195e1f2923ffb10f340f239d61
-
-    cd crystal
-
-    "$stages"/50-crystal --stats --release --llc '-relocation-model=pic' -o "$stages"/51-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (52/$crystal_stages)"
-test -f "$stages"/52-crystal || (
-    cd "$src"
-
-    clone-crystal-at 157fadbc0899bb490574f6ad1542dbe3d080c0e1
-
-    cd crystal
-
-    "$stages"/51-crystal --stats --release --llc '-relocation-model=pic' -o "$stages"/52-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (53/$crystal_stages)"
-test -f "$stages"/53-crystal || (
-    cd "$src"
-
-    clone-crystal-at bca6ca585db5d82c02d195c178c29812357255e7
-
-    cd crystal
-
-    "$stages"/52-crystal --stats --release --llc '-relocation-model=pic' -o "$stages"/53-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (54/$crystal_stages)"
-test -f "$stages"/54-crystal || (
-    cd "$src"
-
-    clone-crystal-at 859ff652db9112a258117bdd43de2bc264001186
-
-    cd crystal
-
-    "$stages"/53-crystal --stats --release --llc '-relocation-model=pic' -o "$stages"/54-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (55/$crystal_stages)"
-test -f "$stages"/55-crystal || (
-    cd "$src"
-
-    clone-crystal-at 56de290dd4f8d0db6ab7b0b4da994be48a8dd4dd
-
-    cd crystal
-
-    "$stages"/54-crystal --stats --release --llc '-relocation-model=pic' -o "$stages"/55-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (56/$crystal_stages)"
-test -f "$stages"/56-crystal || (
-    cd "$src"
-
-    clone-crystal-at 6418bf84f68c6f2a1af18af0b70a82dd7f67ef35
-
-    cd crystal
-
-    "$stages"/55-crystal --stats --release --llc '-relocation-model=pic' -o "$stages"/56-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal 0.1.0 (57/$crystal_stages)"
-test -f "$stages"/57-0.1.0-crystal || (
-    cd "$src"
-
-    clone-crystal-at 0.1.0
-
-    cd crystal
-
-    "$stages"/56-crystal --stats --llc '-relocation-model=pic' -o "$stages"/57-0.1.0-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (58/$crystal_stages)"
-test -f "$stages"/58-crystal || (
-    cd "$src"
-
-    clone-crystal-at bafc4722d67f3db25434d8ad1f8cf0fb9068ca93
-
-    cd crystal
-
-    # Fix check for clang/gcc was accidentally removed in some previous commit
-    git cherry-pick -n b04d62623ff9791db57c3bcd59d1e4cb284b8271
-    "$stages"/57-0.1.0-crystal --stats --llc '-relocation-model=pic' -o "$stages"/58-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal 0.2.0 (59/$crystal_stages)"
-test -f "$stages"/59-0.2.0-crystal || (
-    cd "$src"
-
-    clone-crystal-at 0.2.0
-
-    cd crystal
-
-    # Fix check for clang/gcc was accidentally removed in some previous commit
-    git cherry-pick -n b04d62623ff9791db57c3bcd59d1e4cb284b8271
-    "$stages"/58-crystal --stats --llc '-relocation-model=pic' -o "$stages"/59-0.2.0-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal 0.3.0 (60/$crystal_stages)"
-test -f "$stages"/60-0.3.0-crystal || (
-    cd "$src"
-
-    clone-crystal-at 0.3.0
-
-    cd crystal
-
-    # We are so close to building 0.3.0 with the previous compiler (and the diff to do so is trivial),
-    # we just fudge it so we can.
-    git revert -n 623d4d6801a1980590219174ce78d26028713879
-    "$stages"/59-0.2.0-crystal --stats --llc '-relocation-model=pic' -o "$stages"/60-0.3.0-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (61/$crystal_stages)"
-test -f "$stages"/61-crystal || (
-    cd "$src"
-
-    clone-crystal-at 632d53d703c7766b3d58670aaaf94696cd55271b
-
-    cd crystal
-
-    patch -p1 < "$files"/stage61.patch
-    "$stages"/60-0.3.0-crystal --stats --llc '-relocation-model=pic' -o "$stages"/61-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal 0.3.1 (62/$crystal_stages)"
-test -f "$stages"/62-0.3.1-crystal || (
-    cd "$src"
-
-    clone-crystal-at 0.3.1
-
-    cd crystal
-
-    "$stages"/61-crystal --stats --llc '-relocation-model=pic' -o "$stages"/62-0.3.1-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal 0.3.2 (63/$crystal_stages)"
-test -f "$stages"/63-0.3.2-crystal || (
-    cd "$src"
-
-    clone-crystal-at 0.3.2
-
-    cd crystal
-
-    "$stages"/62-0.3.1-crystal --stats --llc '-relocation-model=pic' -o "$stages"/63-0.3.2-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (64/$crystal_stages)"
-test -f "$stages"/64-crystal || (
-    cd "$src"
-
-    clone-crystal-at 0ff6dac07625a8921742525e67b3ffaf18a15d69
-
-    cd crystal
-
-    "$stages"/63-0.3.2-crystal --stats --llc '-relocation-model=pic' -o "$stages"/64-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (65/$crystal_stages)"
-test -f "$stages"/65-crystal || (
-    cd "$src"
-
-    clone-crystal-at e7845ec76573a8192a997baeeb443b01d6a51c62
-
-    cd crystal
-
-    patch -p1 < "$files"/stage65.patch
-    "$stages"/64-crystal --stats --llc '-relocation-model=pic' -o "$stages"/65-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal 0.3.3 (66/$crystal_stages)"
-test -f "$stages"/66-0.3.3-crystal || (
-    cd "$src"
-
-    clone-crystal-at 0.3.3
-
-    cd crystal
-
-    "$stages"/65-crystal --stats --llc '-relocation-model=pic' -o "$stages"/66-0.3.3-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal 0.3.4 (67/$crystal_stages)"
-test -f "$stages"/67-0.3.4-crystal || (
-    cd "$src"
-
-    clone-crystal-at 0.3.4
-
-    cd crystal
-
-    "$stages"/66-0.3.3-crystal --stats --llc '-relocation-model=pic' -o "$stages"/67-0.3.4-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal (68/$crystal_stages)"
-test -f "$stages"/68-crystal || (
-    cd "$src"
-
-    clone-crystal-at f4b8600835f76727467f9b649c192f1609a61fcd
-
-    cd crystal
-
-    "$stages"/67-0.3.4-crystal --stats --llc '-relocation-model=pic' -o "$stages"/68-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal 0.3.5 (69/$crystal_stages)"
-test -f "$stages"/69-0.3.5-crystal || (
-    cd "$src"
-
-    clone-crystal-at 0.3.5
-
-    cd crystal
-
-    "$stages"/68-crystal --stats --llc '-relocation-model=pic' -o "$stages"/69-0.3.5-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal 0.4.0 (70/$crystal_stages)"
-test -f "$stages"/70-0.4.0-crystal || (
-    cd "$src"
-
-    clone-crystal-at 0.4.0
-
-    cd crystal
-
-    "$stages"/69-0.3.5-crystal --stats --llc '-relocation-model=pic' -o "$stages"/70-0.4.0-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal 0.4.1 (71/$crystal_stages)"
-test -f "$stages"/71-0.4.1-crystal || (
-    cd "$src"
-
-    clone-crystal-at 0.4.1
-
-    cd crystal
-
-    "$stages"/70-0.4.0-crystal --stats --llc '-relocation-model=pic' -o "$stages"/71-0.4.1-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal 0.4.2 (72/$crystal_stages)"
-test -f "$stages"/72-0.4.2-crystal || (
-    cd "$src"
-
-    clone-crystal-at 0.4.2
-
-    cd crystal
-
-    "$stages"/71-0.4.1-crystal --stats --llc '-relocation-model=pic' -o "$stages"/72-0.4.2-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal 0.4.3 (73/$crystal_stages)"
-test -f "$stages"/73-0.4.3-crystal || (
-    cd "$src"
-
-    clone-crystal-at 0.4.3
-
-    cd crystal
-
-    # Generates a lot of warnings about overriding the target triple, so we silence stderr
-    "$stages"/72-0.4.2-crystal --stats --llc '-relocation-model=pic' -o "$stages"/73-0.4.3-crystal src/compiler/crystal.cr 2>/dev/null
-)
-
-echo "==> Bootstrapping Crystal 0.4.4 (74/$crystal_stages)"
-test -f "$stages"/74-0.4.4-crystal || (
-    cd "$src"
-
-    clone-crystal-at 0.4.4
-
-    cd crystal
-
-    sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr
-    "$stages"/73-0.4.3-crystal --stats --llc '-relocation-model=pic' -o "$stages"/74-0.4.4-crystal src/compiler/crystal.cr
-)
+stage 24 51bb8313ea45c1eed59151f34ac618ef2a930fe9
+stage 25 c2d5bea9fa3d7779a35b8266d1e6be78bf627e76 'patch -p1 < "$files"/stage25.patch'
+stage 26 1f58dc82b733dc06e237ee2ed6b17cb07f196308 'patch -p1 < "$files"/stage26.patch'
+stage 27 25eb532631e3dbeaa778cd10f18e085e077cde72 'patch -p1 < "$files"/stage27.patch'
+stage 28 dec595a2f21c91b5510aec1bed62011dbc76b4e8
+stage 29 fbea5680d69dd4924bc769444614d17dd6953e97
+
+crystal_args=(--stats --llc '-relocation-model=pic')
+
+stage 30 ba1613f26e261bf8a3c43c143bc7f4d8868146d0 'git revert -n e5909ae322ecc292512c8d58decb4cd37c344fbd'
+stage 31 b50b0226d9b5f8c8688236e54104918bc06ea526
+stage 32 3abb79bb83468751bb4aec1541d49c9f9526a9a5
+stage 33 b169aec39aff9b8dce35faf2af2fb4bd95866cf3
+stage 34 e697ecd3e80957b89bfa98d8df41d0596ba5a3a0
+stage 35 698485e0351f3ee7f10f8d749d360a573241e034 'patch -p1 < "$files"/stage35.patch'
+stage 36 dcecbe7a258a4e929541a17765ad984eb500ae73
+stage 37 89b1e67b74530bdd7f8c45914d131300c4b9998c
+stage 38 fd022eb1391ed29f7c7fc9b21a3ebbc1a08eee96
+stage 39 834e29389eb0618a9fbc62cba0b1c9b4d00478b8
+stage 40 4aaae0d89e1d2c89b738956829ad5430a11dd8c0
+stage 41 e60ee730726c488df85bf2cc6304f2ef82c5e9ac
+stage 42 b8577f770904c97d651a86e892648fe9d3ec4bb7
+stage 43 0506317f71561c54d67db5119a5290cc39920d16
+stage 44 523ebc0f40b673f2f17a57a5783d74e868d9c785
+stage 45 a89665b6c65e14c43a9ef19a38d1b12849bb56f6
+stage 46 68d154c82f0b5ef3e3fa29e0e9be25e033328530 'patch -p1 < "$files"/stage46.patch'
+
+# TODO: build clang for LLVM and remove --release
+crystal_args=(--stats --release --llc '-relocation-model=pic')
+
+stage 47 f1d3a458b8f23cb1334e700ef224ee6b381b0e42 'patch -p1 < "$files"/stage47.patch'
+stage 48 7689dfa91c41e9aa54110c1d701816eea2dca721
+stage 49 4fb32b775bf5f71abf46b6efe936c019aab100b4
+stage 50 4948b8f2517e5d19c583181f4c9b561a99b568dd
+stage 51 8a7bf7dddfe55b195e1f2923ffb10f340f239d61
+stage 52 157fadbc0899bb490574f6ad1542dbe3d080c0e1
+stage 53 bca6ca585db5d82c02d195c178c29812357255e7
+stage 54 859ff652db9112a258117bdd43de2bc264001186
+stage 55 56de290dd4f8d0db6ab7b0b4da994be48a8dd4dd
+stage 56 6418bf84f68c6f2a1af18af0b70a82dd7f67ef35
+
+crystal_args=(--stats --llc '-relocation-model=pic')
+
+stage 57 0.1.0
+
+# Fix check for clang/gcc was accidentally removed in some previous commit
+stage 58 bafc4722d67f3db25434d8ad1f8cf0fb9068ca93 'git cherry-pick -n b04d62623ff9791db57c3bcd59d1e4cb284b8271'
+
+# Fix check for clang/gcc was accidentally removed in some previous commit
+stage 59 0.2.0 'git cherry-pick -n b04d62623ff9791db57c3bcd59d1e4cb284b8271'
+
+# We are so close to building 0.3.0 with the previous compiler (and the diff to do so is trivial),
+# we just fudge it so we can.
+stage 60 0.3.0 'git revert -n 623d4d6801a1980590219174ce78d26028713879'
+
+stage 61 632d53d703c7766b3d58670aaaf94696cd55271b 'patch -p1 < "$files"/stage61.patch'
+stage 62 0.3.1
+stage 63 0.3.2
+stage 64 0ff6dac07625a8921742525e67b3ffaf18a15d69
+stage 65 e7845ec76573a8192a997baeeb443b01d6a51c62 'patch -p1 < "$files"/stage65.patch'
+stage 66 0.3.3
+stage 67 0.3.4
+stage 68 f4b8600835f76727467f9b649c192f1609a61fcd
+stage 69 0.3.5
+stage 70 0.4.0
+stage 71 0.4.1
+stage 72 0.4.2
+
+# Generates a lot of warnings about overriding the target triple, so we silence stderr
+stage 73 0.4.3 # 2>/dev/null
+
+stage 74 0.4.4 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr"
 
 echo "==> Installing LLVM 3.5.2"
 test -d "$src"/llvm-3.5.2.src || (
@@ -1016,38 +314,9 @@ test -d "$src"/llvm-3.5.2.src || (
 
 ln -sf "$buildroot"/bin/llvm-config-3.5 "$buildroot"/bin/llvm-config
 
-echo "==> Bootstrapping Crystal 0.4.5 (75/$crystal_stages)"
-test -f "$stages"/75-0.4.5-crystal || (
-    cd "$src"
+crystal_args=(--stats)
 
-    clone-crystal-at 0.4.5
-
-    cd crystal
-
-    sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr
-    "$stages"/74-0.4.4-crystal --stats -o "$stages"/75-0.4.5-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal 0.5.0 (76/$crystal_stages)"
-test -f "$stages"/76-0.5.0-crystal || (
-    cd "$src"
-
-    clone-crystal-at 0.5.0
-
-    cd crystal
-
-    sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr
-    "$stages"/75-0.4.5-crystal --stats -o "$stages"/76-0.5.0-crystal src/compiler/crystal.cr
-)
-
-echo "==> Bootstrapping Crystal 0.5.1 (77/$crystal_stages)"
-test -f "$stages"/77-0.5.1-crystal || (
-    cd "$src"
-
-    clone-crystal-at 0.5.1
-
-    cd crystal
-
-    sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr
-    "$stages"/76-0.5.0-crystal --stats -o "$stages"/77-0.5.1-crystal src/compiler/crystal.cr
-)
+stage 75 0.4.5 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr"
+stage 76 0.5.0 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr"
+stage 77 0.5.1 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr"
+stage 78 0.5.2 "sed -i 's/LLVM::RelocMode::Default/LLVM::RelocMode::PIC/' libs/llvm/target.cr"
