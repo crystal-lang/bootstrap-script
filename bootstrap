@@ -189,7 +189,8 @@ test -f "$stages"/1-crystal || (
 
 crystal_args=(-stats)
 
-stage 2 bffda57eafff50a41e86618f7c2726803d31e42c "sed -i 's/\`llvm-config --libs --ldflags\`/LLVM-3.3/' src/compiler/crystal/llvm.cr"
+stage 2 bffda57eafff50a41e86618f7c2726803d31e42c "sed -i 's/\`llvm-config --libs --ldflags\`/LLVM-3.3/' src/compiler/crystal/llvm.cr &&
+                                                  sed -i 's/\\\\e/$(printf '\e')/' src/compiler/crystal/lexer.cr"
 
 crystal_args=(-stats --llc '-relocation-model=pic')
 
