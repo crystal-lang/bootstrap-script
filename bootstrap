@@ -29,6 +29,7 @@ echo "==> Checking files"
     sha256sum -c "$files"/ruby-1.9.3-p551.tar.gz.sha256
     sha256sum -c "$files"/llvm-3.3.src.tar.gz.sha256
     sha256sum -c "$files"/llvm-3.5.2.src.tar.xz.sha256
+    sha256sum -c "$files"/llvm-3.9.1.src.tar.xz.sha256
     sha256sum -c "$files"/pcl-1.12.tar.gz.sha256
 
     cd "$downloads"/gems
@@ -399,3 +400,24 @@ stage 127 0.19.1 'make deps'
 stage 128 0.19.2 'make deps'
 stage 129 0.19.3 'make deps'
 stage 130 0.19.4 'make deps'
+
+echo "==> Installing LLVM 3.9.1"
+test -d "$src"/llvm-3.9.1.src || (
+    cd "$src"
+
+    rm -Rf llvm-3.9.1.src
+    tar xJf "$downloads"/llvm-3.9.1.src.tar.xz
+
+    cd llvm-3.9.1.src
+
+    mkdir build
+    cd build
+    cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$buildroot/llvm39" -DLLVM_TARGETS_TO_BUILD="X86" ..
+
+    make "-j$(nproc --all)"
+    make install
+
+    ln -s "$buildroot"/llvm39/bin/llvm-config "$buildroot"/bin/llvm-config-3.9
+)
+
+ln -sf "$buildroot"/bin/llvm-config-3.9 "$buildroot"/bin/llvm-config
