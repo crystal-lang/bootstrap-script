@@ -10,7 +10,7 @@ buildroot="$(pwd)"/buildroot
 src="$buildroot"/src
 stages="$(pwd)"/stages
 
-crystal_stages="01"
+crystal_stages="148"
 
 export PATH="$buildroot/bin:$PATH"
 export PKG_CONFIG_PATH="$buildroot/lib/pkgconfig"
@@ -160,7 +160,7 @@ stage() {
         local name="Crystal"
     fi
 
-    echo "==> Bootstrapping $name ($(printf '%02d' "$stage_num")/$crystal_stages)"
+    echo "==> Bootstrapping $name ($(printf '%03d' "$stage_num")/$crystal_stages)"
     test -f "$output" || (
         cd "$src"
 
@@ -423,3 +423,26 @@ test -d "$src"/llvm-3.9.1.src || (
 )
 
 ln -sf "$buildroot"/bin/llvm-config-3.9 "$buildroot"/bin/llvm-config
+
+stage 131 0.20.0 'make deps'
+stage 132 0.20.1 'make deps'
+
+crystal_args=(build --stats -Dwithout_openssl -Dwithout_zlib -Di_know_what_im_doing)
+
+stage 133 0.20.2 'make deps'
+stage 134 0.20.3 'make deps'
+stage 135 0.20.4 'make deps'
+stage 136 0.20.5 'make deps'
+stage 137 0.21.0 'make deps'
+stage 138 0.21.1 'make deps'
+stage 139 0.22.0 'make deps'
+stage 140 0.23.0 'make deps'
+stage 141 0.23.1 'make deps'
+stage 142 0.24.0 'make deps'
+stage 143 0.24.1 'make deps'
+stage 144 0.24.2 'make deps'
+stage 145 0.25.0 'make deps'
+stage 146 0.25.1 'make deps'
+stage 147 0.26.0 'make deps'
+stage 148 0.26.1 'make deps'
+stage 149 0.27.0 'make deps'
