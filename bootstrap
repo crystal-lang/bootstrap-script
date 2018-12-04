@@ -18,6 +18,7 @@ export LIBRARY_PATH="$buildroot/lib:$buildroot/llvm33/lib:$buildroot/llvm35/lib"
 export LD_LIBRARY_PATH="$LIBRARY_PATH"
 export LLVM_CONFIG="$buildroot"/bin/llvm-config
 export GEM_HOME="$buildroot"/lib/ruby/gems/1.9.1
+export CRYSTAL_CACHE_DIR=".crystal"
 
 test -d "$downloads" || (echo "downloads directory doesn't exist" && exit 1)
 
