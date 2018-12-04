@@ -78,7 +78,7 @@ test -d "$src"/llvm-3.3.src || (
 
     cd llvm-3.3.src
 
-    CC=gcc CXX=g++ ./configure --prefix="$buildroot/llvm33" --enable-shared --with-python="$(command -v python2)"
+    CC=gcc CXX=g++ ./configure --prefix="$buildroot/llvm33" --enable-shared --enable-optimized --enable-targets="x86_64" --with-python="$(command -v python2)"
     make "-j$(nproc --all)"
     make install
 
@@ -309,7 +309,7 @@ test -d "$src"/llvm-3.5.2.src || (
 
     cd llvm-3.5.2.src
 
-    CC=gcc CXX=g++ ./configure --prefix="$buildroot/llvm35" --enable-shared --with-python="$(command -v python2)"
+    CC=gcc CXX=g++ ./configure --prefix="$buildroot/llvm35" --enable-shared --enable-optimized --enable-targets="x86_64" --with-python="$(command -v python2)"
     make "-j$(nproc --all)"
     make install
 
