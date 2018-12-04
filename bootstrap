@@ -149,7 +149,7 @@ stage() {
     local ref="$2"
     local commands="${3:-}"
 
-    local input="$(find "$stages" -name "$(( "$stage_num" - 1))*crystal")"
+    local input="$(find "$stages" -type f -regex ".*/$(( "$stage_num" - 1))-.*crystal")"
     if [[ "$ref" =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
         local output="$stages/$stage_num-$ref-crystal"
         local name="Crystal $ref"
