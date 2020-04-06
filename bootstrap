@@ -10,7 +10,7 @@ buildroot="$(pwd)"/buildroot
 src="$buildroot"/src
 stages="$(pwd)"/stages
 
-crystal_stages="148"
+crystal_stages="160"
 
 export PATH="$buildroot/bin:$PATH"
 export PKG_CONFIG_PATH="$buildroot/lib/pkgconfig"
@@ -81,6 +81,8 @@ test -d "$src"/libevent-2.1.10-stable || (
     make "-j$(nproc --all)"
     make install
 )
+
+mv -n "$buildroot"/lib/libevent.so.disabled "$buildroot"/lib/libevent.so || true
 
 echo "==> Installing LLVM 3.3"
 test -d "$src"/llvm-3.3.src || (
@@ -461,3 +463,18 @@ stage 146 0.25.1 'make deps'
 stage 147 0.26.0 'make deps'
 stage 148 0.26.1 'make deps'
 stage 149 0.27.0 'make deps'
+stage 150 0.27.1 'make deps'
+stage 151 0.27.2 'make deps'
+stage 152 0.28.0 'make deps'
+stage 153 0.29.0 'make deps'
+stage 154 0.30.0 'make deps'
+stage 155 0.30.1 'make deps'
+stage 156 0.31.0 'make deps'
+stage 157 0.31.1 'make deps'
+
+# Libevent incompatibility is fixed now, swap out libevent.so
+mv -f "$buildroot"/lib/libevent.so "$buildroot"/lib/libevent.so.disabled
+
+stage 158 0.32.0 'make deps'
+stage 159 0.32.1 'make deps'
+stage 160 0.33.0 'make deps'
