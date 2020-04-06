@@ -177,7 +177,7 @@ stage() {
 
 export CRYSTAL_PATH="$src"/crystal/src
 
-echo "==> Bootstrapping Crystal (01/$crystal_stages)"
+echo "==> Bootstrapping Crystal (001/$crystal_stages)"
 test -f "$stages"/1-crystal || (
     cd "$src"
 

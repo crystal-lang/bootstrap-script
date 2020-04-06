@@ -9,7 +9,7 @@ downloads="$(pwd)"/downloads
 rm -Rf "$downloads"
 mkdir -p "$downloads"
 
-wget -O "$downloads"/openssl-1.0.2q.tar.gz https://www.openssl.org/source/openssl-1.0.2q.tar.gz
+wget -O "$downloads"/openssl-1.0.2q.tar.gz https://www.openssl.org/source/old/1.0.2/openssl-1.0.2q.tar.gz
 wget -O "$downloads"/ruby-1.9.3-p551.tar.gz https://cache.ruby-lang.org/pub/ruby/1.9/ruby-1.9.3-p551.tar.gz
 wget -O "$downloads"/llvm-3.3.src.tar.gz https://releases.llvm.org/3.3/llvm-3.3.src.tar.gz
 wget -O "$downloads"/llvm-3.5.2.src.tar.xz https://releases.llvm.org/3.5.2/llvm-3.5.2.src.tar.xz
