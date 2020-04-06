@@ -11,6 +11,7 @@ mkdir -p "$downloads"
 
 curl -L -o "$downloads"/openssl-1.0.2q.tar.gz https://www.openssl.org/source/old/1.0.2/openssl-1.0.2q.tar.gz
 curl -L -o "$downloads"/ruby-1.9.3-p551.tar.gz https://cache.ruby-lang.org/pub/ruby/1.9/ruby-1.9.3-p551.tar.gz
+curl -L -o "$downloads"/libevent-2.1.10-stable.tar.gz https://github.com/libevent/libevent/releases/download/release-2.1.10-stable/libevent-2.1.10-stable.tar.gz
 curl -L -o "$downloads"/llvm-3.3.src.tar.gz https://releases.llvm.org/3.3/llvm-3.3.src.tar.gz
 curl -L -o "$downloads"/llvm-3.5.2.src.tar.xz https://releases.llvm.org/3.5.2/llvm-3.5.2.src.tar.xz
 curl -L -o "$downloads"/llvm-3.9.1.src.tar.xz https://releases.llvm.org/3.9.1/llvm-3.9.1.src.tar.xz

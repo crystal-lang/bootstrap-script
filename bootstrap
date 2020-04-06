@@ -29,6 +29,7 @@ echo "==> Checking files"
 
     sha256sum -c "$files"/openssl-1.0.2q.tar.gz.sha256
     sha256sum -c "$files"/ruby-1.9.3-p551.tar.gz.sha256
+    sha256sum -c "$files"/libevent-2.1.10-stable.tar.gz.sha256
     sha256sum -c "$files"/llvm-3.3.src.tar.gz.sha256
     sha256sum -c "$files"/llvm-3.5.2.src.tar.xz.sha256
     sha256sum -c "$files"/llvm-3.9.1.src.tar.xz.sha256
@@ -54,7 +55,6 @@ test -d "$src"/openssl-1.0.2q || (
     make install
 )
 
-
 echo "==> Installing Ruby"
 test -d "$src"/ruby-1.9.3-p551 || (
     cd "$src"
@@ -65,6 +65,19 @@ test -d "$src"/ruby-1.9.3-p551 || (
 
     autoconf
     ./configure --prefix="$buildroot" --enable-shared --disable-rpath
+    make "-j$(nproc --all)"
+    make install
+)
+
+echo "==> Installing libevent 2.1.10"
+test -d "$src"/libevent-2.1.10-stable || (
+    cd "$src"
+
+    tar xzf "$downloads"/libevent-2.1.10-stable.tar.gz
+
+    cd libevent-2.1.10-stable
+
+    ./configure --prefix="$buildroot" --enable-shared
     make "-j$(nproc --all)"
     make install
 )
