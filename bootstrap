@@ -82,7 +82,9 @@ test -d "$src"/llvm-3.3.src || (
     make "-j$(nproc --all)"
     make install
 
-    ln -s "$buildroot"/llvm33/bin/llvm-config "$buildroot"/bin/llvm-config-3.3
+    cp "$files"/llvm-config-3.3 "$buildroot"/bin/llvm-config-3.3
+    chmod +x "$buildroot"/bin/llvm-config-3.3
+    sed -i "s|@LLVM_CONFIG@|${buildroot}/llvm33/bin/llvm-config|" "$buildroot"/bin/llvm-config-3.3
 )
 
 ln -sf "$buildroot"/bin/llvm-config-3.3 "$buildroot"/bin/llvm-config

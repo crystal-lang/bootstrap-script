@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+
+LLVM_CONFIG = "@LLVM_CONFIG@"
+
+ARGV.each do |arg|
+  if arg == "--libs"
+    puts "-lLLVM-3.3"
+  else
+    print `#{LLVM_CONFIG} #{arg}`
+  end
+end
