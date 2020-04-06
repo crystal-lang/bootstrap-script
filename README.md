@@ -17,3 +17,4 @@ Dependencies:
 - libyaml dev package
 - libunwind dev package
 - libgc (bdwgc) dev package
+- libevent dev package
