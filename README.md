@@ -8,6 +8,10 @@ Dependencies:
 - Essential build tools i.e. `build-essential`/`base-devel`
 - curl
 - git
+- patch
+- which
+- tar
+- xz
 - autoconf
 - libtool
 - cmake
