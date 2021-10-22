@@ -478,3 +478,6 @@ mv -f "$buildroot"/lib/libevent.so "$buildroot"/lib/libevent.so.disabled
 stage 158 0.32.0 'make deps'
 stage 159 0.32.1 'make deps'
 stage 160 0.33.0 'make deps'
+stage 161 0.34.0 'make deps'
+stage 162 0.35.1 'make deps'
+stage 162 0.36.1 'make deps'
