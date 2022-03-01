@@ -10,7 +10,7 @@ buildroot="$(pwd)"/buildroot
 src="$buildroot"/src
 stages="$(pwd)"/stages
 
-crystal_stages="160"
+crystal_stages="162"
 
 export PATH="$buildroot/bin:$PATH"
 export PKG_CONFIG_PATH="$buildroot/lib/pkgconfig"
